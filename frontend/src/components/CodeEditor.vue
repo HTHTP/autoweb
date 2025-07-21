@@ -1,27 +1,28 @@
 <template>
-  <div class="code-editor">
-    <div class="editor-header">
-      <span class="editor-title">生成的代码</span>
-      <div class="editor-actions">
-        <el-button size="small" @click="copyCode">
-          <el-icon><CopyDocument /></el-icon>
-          复制代码
-        </el-button>
-        <el-button size="small" @click="formatCode">
-          <el-icon><Promotion /></el-icon>
-          格式化
-        </el-button>
+  <div class="simple-editable-code">
+    <div class="code-header">
+      <span>生成的代码</span>
+      <div class="header-actions">
+        <el-button size="small" @click="copyCode">复制</el-button>
+        <el-button size="small" @click="clearCode">清空</el-button>
       </div>
     </div>
-    <div ref="editorContainer" class="editor-container"></div>
+    <div class="code-editor-wrapper">
+      <textarea
+        ref="textareaRef"
+        v-model="localValue"
+        class="code-editor"
+        placeholder="代码将在这里显示..."
+        @input="handleInput"
+        spellcheck="false"
+      ></textarea>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from "vue";
+import { ref, watch } from "vue";
 import { ElMessage } from "element-plus";
-import { CopyDocument, Promotion } from "@element-plus/icons-vue";
-import * as monaco from "monaco-editor";
 
 interface Props {
   modelValue: string;
@@ -40,107 +41,102 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-const editorContainer = ref<HTMLElement>();
-let editor: monaco.editor.IStandaloneCodeEditor | null = null;
-
-onMounted(async () => {
-  await nextTick();
-  initEditor();
-});
-
-const initEditor = () => {
-  if (!editorContainer.value) return;
-
-  editor = monaco.editor.create(editorContainer.value, {
-    value: props.modelValue,
-    language: props.language,
-    theme: "vs-dark",
-    readOnly: props.readonly,
-    automaticLayout: true,
-    minimap: { enabled: false },
-    fontSize: 14,
-    lineNumbers: "on",
-    scrollBeyondLastLine: false,
-    wordWrap: "on",
-  });
-
-  // 监听内容变化
-  editor.onDidChangeModelContent(() => {
-    if (editor) {
-      emit("update:modelValue", editor.getValue());
-    }
-  });
-};
+const textareaRef = ref<HTMLTextAreaElement>();
+const localValue = ref(props.modelValue || "");
 
 // 监听 props 变化
 watch(
   () => props.modelValue,
   (newValue) => {
-    if (editor && editor.getValue() !== newValue) {
-      editor.setValue(newValue);
+    if (newValue !== localValue.value) {
+      localValue.value = newValue || "";
     }
   }
 );
 
-watch(
-  () => props.language,
-  (newLanguage) => {
-    if (editor) {
-      const model = editor.getModel();
-      if (model) {
-        monaco.editor.setModelLanguage(model, newLanguage);
-      }
-    }
-  }
-);
+// 处理输入变化
+const handleInput = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement;
+  emit("update:modelValue", target.value);
+};
 
 const copyCode = async () => {
-  if (editor) {
-    try {
-      await navigator.clipboard.writeText(editor.getValue());
-      ElMessage.success("代码已复制到剪贴板");
-    } catch (error) {
-      ElMessage.error("复制失败");
-    }
+  try {
+    await navigator.clipboard.writeText(localValue.value);
+    ElMessage.success("代码已复制到剪贴板");
+  } catch (error) {
+    ElMessage.error("复制失败");
   }
 };
 
-const formatCode = () => {
-  if (editor) {
-    editor.getAction("editor.action.formatDocument")?.run();
-    ElMessage.success("代码已格式化");
-  }
+const clearCode = () => {
+  localValue.value = "";
+  emit("update:modelValue", "");
+  ElMessage.success("代码已清空");
 };
 </script>
 
 <style scoped>
-.code-editor {
+.simple-editable-code {
   border: 1px solid #dcdfe6;
   border-radius: 4px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  color: #d4d4d4;
   overflow: hidden;
 }
 
-.editor-header {
+.code-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #dcdfe6;
+  background-color: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  flex-shrink: 0;
 }
 
-.editor-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-}
-
-.editor-actions {
+.header-actions {
   display: flex;
   gap: 8px;
 }
 
-.editor-container {
-  height: 400px;
+.code-editor-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-editor {
+  width: 100%;
+  height: 100%;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 12px;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left; /* 强制左对齐 */
+  direction: ltr; /* 从左到右 */
+  white-space: pre; /* 保持空格和换行 */
+  word-wrap: normal; /* 不自动换行长单词 */
+  overflow-wrap: normal;
+  tab-size: 2; /* Tab 缩进大小 */
+  box-sizing: border-box;
+}
+
+.code-editor:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px #007acc;
+}
+
+.code-editor::placeholder {
+  color: #6a6a6a;
+  font-style: italic;
 }
 </style>

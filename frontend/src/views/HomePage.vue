@@ -171,7 +171,9 @@
 import { ref, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { Download, Upload, Star } from "@element-plus/icons-vue";
+// @ts-ignore
 import CodeEditor from "../components/CodeEditor.vue";
+// @ts-ignore
 import PreviewPanel from "../components/PreviewPanel.vue";
 import { generateCode, modifyCode, exportCode } from "../api/generate";
 
@@ -276,6 +278,7 @@ const handleSketchUpload = (file: any) => {
 <style scoped>
 .home-page {
   height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
 }
@@ -307,13 +310,22 @@ const handleSketchUpload = (file: any) => {
 
 .input-panel {
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 0; /* 让 el-card 自己控制内边距 */
   border-right: 1px solid #e9ecef;
+  height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .input-card {
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  box-sizing: border-box;
+  padding: 20px;
+  overflow-y: auto;
 }
 
 .input-type-selector {
