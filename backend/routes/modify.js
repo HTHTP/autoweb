@@ -3,8 +3,8 @@ const { modifyHTML } = require('../utils/codeGenerator')
 
 const router = express.Router()
 
-// 修改网页代码
-router.post('/modify', async (req, res) => {
+// 注意：这里改为 '/' 而不是 '/modify'
+router.post('/', async (req, res) => {
     try {
         const { currentCode, modification } = req.body
 

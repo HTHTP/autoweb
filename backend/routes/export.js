@@ -4,8 +4,8 @@ const path = require('path')
 
 const router = express.Router()
 
-// 导出网页代码为 ZIP
-router.post('/export', async (req, res) => {
+// 注意：这里改为 '/' 而不是 '/export'
+router.post('/', async (req, res) => {
     try {
         const { code } = req.body
 

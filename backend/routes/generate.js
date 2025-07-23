@@ -3,8 +3,8 @@ const { generateHTML } = require('../utils/codeGenerator')
 
 const router = express.Router()
 
-// 生成网页代码
-router.post('/generate', async (req, res) => {
+// 注意：这里改为 '/' 而不是 '/generate'
+router.post('/', async (req, res) => {
     try {
         const { description, components = [], style = 'modern' } = req.body
 

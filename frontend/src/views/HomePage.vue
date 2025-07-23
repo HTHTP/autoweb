@@ -202,6 +202,15 @@ const generateWebpage = async () => {
 
   isGenerating.value = true;
   try {
+    console.log("开始生成网页...", {
+      description: description.value,
+      components: selectedComponents.value,
+      style: selectedStyle.value,
+    });
+
+    // 显示加载提示
+    ElMessage.info("正在生成网页，请稍候...");
+
     const response = await generateCode({
       description: description.value,
       components: selectedComponents.value,
@@ -210,14 +219,22 @@ const generateWebpage = async () => {
 
     if (response.success) {
       generatedCode.value = response.code;
-      activeTab.value = "preview";
+      activeTab.value = "code";
       ElMessage.success("网页生成成功！");
     } else {
-      ElMessage.error(response.message || "生成失败");
+      throw new Error(response.error || "生成失败");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("生成失败:", error);
-    ElMessage.error("生成失败，请检查网络连接");
+
+    // 根据不同的错误类型给出不同的提示
+    if (error.code === "ECONNABORTED") {
+      ElMessage.error("请求超时，AI 生成需要较长时间，请稍后重试");
+    } else if (error.message?.includes("Network Error")) {
+      ElMessage.error("网络连接失败，请检查后端服务是否正常运行");
+    } else {
+      ElMessage.error(`生成失败: ${error.message || "未知错误"}`);
+    }
   } finally {
     isGenerating.value = false;
   }
