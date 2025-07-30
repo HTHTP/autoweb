@@ -4,7 +4,7 @@ const path = require('path')
 
 const router = express.Router()
 
-// 注意：这里改为 '/' 而不是 '/export'
+// 导出Vue3项目为ZIP
 router.post('/', async (req, res) => {
     try {
         const { code } = req.body
@@ -19,11 +19,34 @@ router.post('/', async (req, res) => {
         // 创建 ZIP 文件
         const zip = new AdmZip()
 
-        // 添加主 HTML 文件
-        zip.addFile('index.html', Buffer.from(code, 'utf8'))
+        try {
+            // 尝试解析为Vue3项目结构
+            const projectStructure = JSON.parse(code)
 
-        // 添加 README 文件
-        const readme = `# AI 生成的网页
+            // 遍历项目结构，创建文件和文件夹
+            for (const [filePath, content] of Object.entries(projectStructure)) {
+                if (content === "folder") {
+                    // 创建文件夹
+                    zip.addFile(filePath, Buffer.alloc(0), '', 0x10)
+                } else {
+                    // 创建文件
+                    zip.addFile(filePath, Buffer.from(content, 'utf8'))
+                }
+            }
+
+            // 设置响应头
+            res.setHeader('Content-Type', 'application/zip')
+            res.setHeader('Content-Disposition', 'attachment; filename=vue3-project.zip')
+
+        } catch (parseError) {
+            // 如果解析失败，当作HTML文件处理
+            console.log('按HTML文件处理导出')
+
+            // 添加主 HTML 文件
+            zip.addFile('index.html', Buffer.from(code, 'utf8'))
+
+            // 添加 README 文件
+            const readme = `# AI 生成的网页
 
 这是一个由 AI 网页生成器自动生成的网页项目。
 
@@ -48,17 +71,16 @@ router.post('/', async (req, res) => {
 生成时间: ${new Date().toLocaleString('zh-CN')}
 `
 
-        zip.addFile('README.md', Buffer.from(readme, 'utf8'))
+            zip.addFile('README.md', Buffer.from(readme, 'utf8'))
 
-        // 生成 ZIP 缓冲区
+            // 设置响应头
+            res.setHeader('Content-Type', 'application/zip')
+            res.setHeader('Content-Disposition', 'attachment; filename=generated-webpage.zip')
+        }
+
+        // 发送 ZIP 文件
         const zipBuffer = zip.toBuffer()
-
-        // 设置响应头
-        res.setHeader('Content-Type', 'application/zip')
-        res.setHeader('Content-Disposition', 'attachment; filename=generated-webpage.zip')
         res.setHeader('Content-Length', zipBuffer.length)
-
-        // 发送文件
         res.send(zipBuffer)
 
     } catch (error) {

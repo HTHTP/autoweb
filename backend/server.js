@@ -27,11 +27,13 @@ app.get('/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         env: process.env.NODE_ENV,
-        hasApiKey: !!process.env.DEEPSEEK_API_KEY
+        hasDeepSeekApiKey: !!process.env.DEEPSEEK_API_KEY,
+        hasArkApiKey: !!process.env.ARK_API_KEY
     })
 })
 
 app.listen(PORT, () => {
     console.log(`服务器运行在 http://localhost:${PORT}`)
     console.log(`DeepSeek API Key 配置状态: ${process.env.DEEPSEEK_API_KEY ? '已配置' : '未配置'}`)
+    console.log(`豆包 ARK API Key 配置状态: ${process.env.ARK_API_KEY ? '已配置' : '未配置'}`)
 })

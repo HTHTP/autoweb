@@ -104,6 +104,20 @@
             </el-button>
           </div>
 
+          <!-- 生成进度显示 -->
+          <div v-if="showProgress" class="progress-section">
+            <el-divider content-position="left">生成进度</el-divider>
+            <div class="progress-info">
+              <div class="progress-status">{{ generateStatus }}</div>
+              <el-progress
+                :percentage="generateProgress"
+                :show-text="true"
+                :stroke-width="8"
+                status="success"
+              />
+            </div>
+          </div>
+
           <!-- 修改建议输入 -->
           <div v-if="generatedCode" class="modification-input">
             <el-divider content-position="left">修改建议</el-divider>
@@ -175,7 +189,11 @@ import { Download, Upload, Star } from "@element-plus/icons-vue";
 import CodeEditor from "../components/CodeEditor.vue";
 // @ts-ignore
 import PreviewPanel from "../components/PreviewPanel.vue";
-import { generateCode, modifyCode, exportCode } from "../api/generate";
+import {
+  generateCodeWithProgress,
+  modifyCode,
+  exportCode,
+} from "../api/generate";
 
 // 响应式数据
 const inputType = ref<"text" | "sketch">("text");
@@ -187,6 +205,11 @@ const isGenerating = ref(false);
 const isModifying = ref(false);
 const activeTab = ref("code");
 const modificationText = ref("");
+
+// 进度相关数据
+const generateProgress = ref(0);
+const generateStatus = ref("");
+const showProgress = ref(false);
 
 // 计算属性
 const canGenerate = computed(() => {
@@ -201,6 +224,10 @@ const generateWebpage = async () => {
   if (!canGenerate.value) return;
 
   isGenerating.value = true;
+  showProgress.value = true;
+  generateProgress.value = 0;
+  generateStatus.value = "开始生成网页";
+
   try {
     console.log("开始生成网页...", {
       description: description.value,
@@ -208,22 +235,24 @@ const generateWebpage = async () => {
       style: selectedStyle.value,
     });
 
-    // 显示加载提示
-    ElMessage.info("正在生成网页，请稍候...");
+    // 使用带进度的生成函数
+    const code = await generateCodeWithProgress(
+      {
+        description: description.value,
+        components: selectedComponents.value,
+        style: selectedStyle.value,
+      },
+      (status: string, progress: number) => {
+        // 进度回调
+        generateStatus.value = status;
+        generateProgress.value = progress;
+        console.log(`生成进度: ${status} (${progress}%)`);
+      }
+    );
 
-    const response = await generateCode({
-      description: description.value,
-      components: selectedComponents.value,
-      style: selectedStyle.value,
-    });
-
-    if (response.success) {
-      generatedCode.value = response.code;
-      activeTab.value = "code";
-      ElMessage.success("网页生成成功！");
-    } else {
-      throw new Error(response.error || "生成失败");
-    }
+    generatedCode.value = code;
+    activeTab.value = "code";
+    ElMessage.success("网页生成成功！");
   } catch (error: any) {
     console.error("生成失败:", error);
 
@@ -237,6 +266,7 @@ const generateWebpage = async () => {
     }
   } finally {
     isGenerating.value = false;
+    showProgress.value = false;
   }
 };
 
@@ -275,10 +305,24 @@ const exportCode2 = async () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "generated-webpage.zip";
+
+    // 根据生成的代码类型确定文件名
+    let filename = "generated-webpage.zip";
+    try {
+      // 尝试解析为Vue3项目结构
+      const projectStructure = JSON.parse(generatedCode.value);
+      if (typeof projectStructure === "object" && projectStructure !== null) {
+        filename = "vue3-project.zip";
+      }
+    } catch (e) {
+      // 如果解析失败，说明是HTML文件
+      filename = "generated-webpage.zip";
+    }
+
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-    ElMessage.success("代码导出成功！");
+    ElMessage.success("项目导出成功！");
   } catch (error) {
     console.error("导出失败:", error);
     ElMessage.error("导出失败");
@@ -361,6 +405,25 @@ const handleSketchUpload = (file: any) => {
 
 .generate-button {
   margin-bottom: 20px;
+}
+
+.progress-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.progress-info {
+  text-align: center;
+}
+
+.progress-status {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
 
 .modification-input {

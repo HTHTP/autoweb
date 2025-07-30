@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // 创建 axios 实例，设置合理的超时时间
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 600000, // 减少到 60 秒，避免过长等待
+    timeout: 600000, // 60 秒超时
     headers: {
         'Content-Type': 'application/json',
     },
@@ -48,12 +48,98 @@ export interface ModifyRequest {
     modification: string;
 }
 
-export const generateCode = async (data: GenerateRequest) => {
+export interface GenerateResponse {
+    success: boolean;
+    taskId?: string;
+    code?: string;
+    message: string;
+}
+
+export interface ProgressResponse {
+    success: boolean;
+    status: string;
+    progress: number;
+    completed: boolean;
+    error?: string;
+    result?: string;
+}
+
+// 启动代码生成任务
+export const generateCode = async (data: GenerateRequest): Promise<GenerateResponse> => {
     try {
         console.log('开始生成代码请求...', data);
         const response = await apiClient.post('/generate', data);
-        console.log('代码生成成功');
+        console.log('生成任务启动成功');
         return response.data;
+    } catch (error) {
+        console.error('启动生成任务失败:', error);
+        throw error;
+    }
+};
+
+// 查询生成进度
+export const getGenerateProgress = async (taskId: string): Promise<ProgressResponse> => {
+    try {
+        const response = await apiClient.get(`/generate/progress/${taskId}`);
+        return response.data;
+    } catch (error) {
+        console.error('查询进度失败:', error);
+        throw error;
+    }
+};
+
+// 带进度回调的代码生成函数
+export const generateCodeWithProgress = async (
+    data: GenerateRequest,
+    onProgress?: (status: string, progress: number) => void
+): Promise<string> => {
+    try {
+        // 启动生成任务
+        const startResponse = await generateCode(data);
+
+        if (!startResponse.success || !startResponse.taskId) {
+            throw new Error(startResponse.message || '启动生成任务失败');
+        }
+
+        const taskId = startResponse.taskId;
+
+        // 轮询查询进度
+        return new Promise((resolve, reject) => {
+            const pollProgress = async () => {
+                try {
+                    const progressResponse = await getGenerateProgress(taskId);
+
+                    if (!progressResponse.success) {
+                        reject(new Error('查询进度失败'));
+                        return;
+                    }
+
+                    // 回调进度更新
+                    if (onProgress) {
+                        onProgress(progressResponse.status, progressResponse.progress);
+                    }
+
+                    // 检查是否完成
+                    if (progressResponse.completed) {
+                        if (progressResponse.error) {
+                            reject(new Error(progressResponse.error));
+                        } else if (progressResponse.result) {
+                            resolve(progressResponse.result);
+                        } else {
+                            reject(new Error('生成完成但没有结果'));
+                        }
+                        return;
+                    }
+
+                    // 继续轮询
+                    setTimeout(pollProgress, 2000); // 每2秒查询一次
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            pollProgress();
+        });
     } catch (error) {
         console.error('生成代码失败:', error);
         throw error;
