@@ -1,12 +1,11 @@
 <template>
   <div id="app">
-    <HomePage />
+    <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
-// @ts-ignore
-import HomePage from "./views/HomePage.vue";
+// 主应用组件，使用路由系统
 </script>
 
 <style>

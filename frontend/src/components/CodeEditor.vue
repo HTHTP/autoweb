@@ -9,21 +9,11 @@
               <span>项目结构</span>
               <div class="header-actions">
                 <el-button size="small" @click="expandAll">展开全部</el-button>
-                <el-button size="small" @click="collapseAll"
-                  >折叠全部</el-button
-                >
+                <el-button size="small" @click="collapseAll">折叠全部</el-button>
               </div>
             </div>
-            <el-tree
-              ref="treeRef"
-              :data="fileTreeData"
-              :props="treeProps"
-              node-key="path"
-              @node-click="selectFile"
-              :expand-on-click-node="false"
-              :default-expand-all="false"
-              class="file-tree"
-            >
+            <el-tree ref="treeRef" :data="fileTreeData" :props="treeProps" node-key="path" @node-click="selectFile"
+              :expand-on-click-node="true" :default-expand-all="false" class="file-tree">
               <template #default="{ node, data }">
                 <span class="tree-node">
                   <el-icon v-if="data.isFolder" class="folder-icon">
@@ -44,22 +34,12 @@
             <div class="content-header">
               <span>{{ selectedFile || "请选择文件" }}</span>
               <div class="header-actions">
-                <el-button size="small" @click="copyFileContent"
-                  >复制内容</el-button
-                >
+                <el-button size="small" @click="copyFileContent">复制内容</el-button>
               </div>
             </div>
             <div class="content-editor">
-              <textarea
-                ref="contentTextarea"
-                v-model="selectedFileContent"
-                class="code-editor"
-                :placeholder="
-                  selectedFile ? '文件内容...' : '请从左侧文件树选择文件'
-                "
-                @input="handleContentChange"
-                spellcheck="false"
-              ></textarea>
+              <textarea ref="contentTextarea" v-model="selectedFileContent" class="code-editor" :placeholder="selectedFile ? '文件内容...' : '请从左侧文件树选择文件'
+                " @input="handleContentChange" spellcheck="false"></textarea>
             </div>
           </div>
         </el-tab-pane>
@@ -74,14 +54,8 @@
               </div>
             </div>
             <div class="code-editor-wrapper">
-              <textarea
-                ref="jsonTextarea"
-                v-model="localValue"
-                class="code-editor json-editor"
-                placeholder="Vue3项目JSON结构将在这里显示..."
-                @input="handleInput"
-                spellcheck="false"
-              ></textarea>
+              <textarea ref="jsonTextarea" v-model="localValue" class="code-editor json-editor"
+                placeholder="Vue3项目JSON结构将在这里显示..." @input="handleInput" spellcheck="false"></textarea>
             </div>
           </div>
         </el-tab-pane>
@@ -237,13 +211,28 @@ const selectFile = (data: any) => {
 const expandAll = () => {
   const tree = treeRef.value;
   if (tree) {
-    // 获取所有节点并展开
+    // 获取所有节点的key并展开
     const allNodes = getAllTreeNodes(fileTreeData.value);
-    allNodes.forEach((node) => {
-      if (!node.isLeaf) {
-        tree.setCurrentKey(node.path);
-      }
+    const allKeys = allNodes.filter(node => node.isFolder).map(node => node.path);
+    allKeys.forEach(key => {
+      tree.setCurrentKey(key);
     });
+    // 使用Element Plus的展开所有节点方法
+    fileTreeData.value.forEach(node => {
+      expandNodeRecursively(tree, node);
+    });
+  }
+};
+
+// 递归展开节点
+const expandNodeRecursively = (tree: any, node: any) => {
+  if (node.isFolder) {
+    tree.store.nodesMap[node.path]?.expand();
+    if (node.children) {
+      node.children.forEach((child: any) => {
+        expandNodeRecursively(tree, child);
+      });
+    }
   }
 };
 
@@ -251,7 +240,16 @@ const expandAll = () => {
 const collapseAll = () => {
   const tree = treeRef.value;
   if (tree) {
-    // Element Plus的tree组件折叠所有节点
+    // 折叠所有节点
+    const allNodes = getAllTreeNodes(fileTreeData.value);
+    const folderKeys = allNodes.filter(node => node.isFolder).map(node => node.path);
+    folderKeys.forEach(key => {
+      const treeNode = tree.store.nodesMap[key];
+      if (treeNode) {
+        treeNode.collapse();
+      }
+    });
+    // 清除当前选中状态
     tree.setCurrentKey(undefined);
   }
 };
@@ -455,7 +453,8 @@ const formatJson = () => {
 
 .json-editor {
   background-color: #1e1e1e;
-  color: #569cd6; /* JSON高亮颜色 */
+  color: #569cd6;
+  /* JSON高亮颜色 */
 }
 
 .code-editor:focus {
@@ -470,6 +469,7 @@ const formatJson = () => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+
   .tree-header,
   .content-header,
   .code-header {

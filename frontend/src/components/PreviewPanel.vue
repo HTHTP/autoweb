@@ -23,9 +23,13 @@
         <div class="empty-icon">🌟</div>
         <h3 class="empty-title">等待代码生成</h3>
         <p class="empty-description">
-          请在左侧输入需求并生成代码，<br />
+          请在左侧点击"加载演示代码"按钮，<br />
+          或输入需求并生成代码，<br />
           生成的网页将在此处实时预览
         </p>
+        <div class="debug-info">
+          <p>调试信息：接收到的code属性为 {{ props.code || 'null/undefined' }}</p>
+        </div>
       </div>
       <!-- 预览框架 -->
       <iframe v-else ref="previewFrame" :srcdoc="processedCode" class="preview-iframe"
@@ -49,15 +53,30 @@ const previewFrame = ref<HTMLIFrameElement>();
 
 // 处理代码，添加必要的样式和脚本
 const processedCode = computed(() => {
+  console.log('PreviewPanel received code:', props.code ? props.code.substring(0, 200) + '...' : 'null/empty');
+
   if (!props.code) return "";
 
-  // 检查是否是Vue项目JSON结构
+  // 检查是否是项目文件结构的JSON
   try {
     const projectData = JSON.parse(props.code);
-    if (projectData["src/App.vue"] && projectData["src/main.js"]) {
-      return createVueProjectHTML(projectData);
+    console.log('Parsed project data keys:', Object.keys(projectData));
+
+    // 检查是否包含项目文件结构
+    const hasProjectStructure = Object.keys(projectData).some(key =>
+      key.includes('/') && (key.endsWith('.vue') || key.endsWith('.js') || key.endsWith('.html'))
+    );
+
+    console.log('Has project structure:', hasProjectStructure);
+
+    if (hasProjectStructure) {
+      const result = createProjectHTML(projectData);
+      console.log('Generated HTML length:', result.length);
+      console.log('Generated HTML preview:', result.substring(0, 300) + '...');
+      return result;
     }
   } catch (e) {
+    console.log('Not JSON format, treating as plain code');
     // 不是JSON格式，继续处理其他格式
   }
 
@@ -94,20 +113,79 @@ const processedCode = computed(() => {
 </html>`;
 });
 
-// 创建Vue项目的可运行HTML
-const createVueProjectHTML = (projectData: any) => {
-  const appVue = projectData["src/App.vue"] || "";
+// 创建项目的可运行HTML
+const createProjectHTML = (projectData: any) => {
+  console.log('createProjectHTML called with data:', Object.keys(projectData));
 
+  // 寻找主要的入口文件
+  let mainHTML = '';
+  let appVue = '';
+
+  // 查找HTML入口文件
+  const htmlFiles = Object.keys(projectData).filter(key => key.endsWith('.html'));
+  console.log('Found HTML files:', htmlFiles);
+  if (htmlFiles.length > 0) {
+    mainHTML = projectData[htmlFiles[0]];
+  }
+
+  // 查找Vue组件文件
+  const vueFiles = Object.keys(projectData).filter(key => key.endsWith('.vue'));
+  console.log('Found Vue files:', vueFiles);
+  const appVueFile = vueFiles.find(file => file.includes('App.vue'));
+  if (appVueFile) {
+    appVue = projectData[appVueFile];
+    console.log('Found App.vue file:', appVueFile);
+  }
+
+  // 如果有Vue组件，优先创建Vue应用（即使有HTML文件）
+  if (appVue) {
+    console.log('Creating Vue application');
+    return createVueAppHTML(appVue, projectData);
+  }
+
+  // 如果有完整的HTML文件且没有Vue组件，使用HTML文件
+  if (mainHTML && mainHTML.includes('<!DOCTYPE html>')) {
+    console.log('Using HTML file directly');
+    return mainHTML;
+  }
+
+  // 否则创建一个项目文件浏览器
+  console.log('Creating project browser');
+  return createProjectBrowserHTML(projectData);
+};// 创建Vue应用的HTML
+const createVueAppHTML = (appVueContent: string, projectData: any) => {
   // 解析Vue单文件组件
-  const templateMatch = appVue.match(/<template>([\s\S]*?)<\/template>/);
-  const scriptMatch = appVue.match(/<script[^>]*>([\s\S]*?)<\/script>/);
-  const styleMatch = appVue.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+  const templateMatch = appVueContent.match(/<template>([\s\S]*?)<\/template>/);
+  const styleMatch = appVueContent.match(/<style[^>]*>([\s\S]*?)<\/style>/);
 
   const template = templateMatch ? templateMatch[1].trim() : '<div>Vue组件模板解析失败</div>';
-  const script = scriptMatch ? scriptMatch[1].trim() : '';
-  const style = styleMatch ? styleMatch[1].trim() : '';
+  let style = styleMatch ? styleMatch[1].trim() : '';
 
-  const htmlContent = `<!DOCTYPE html>
+  // 查找HelloWorld组件
+  const helloWorldFile = Object.keys(projectData).find(key => key.includes('HelloWorld.vue'));
+  let helloWorldComponent = '';
+
+  if (helloWorldFile) {
+    const helloWorldContent = projectData[helloWorldFile];
+    const hwTemplateMatch = helloWorldContent.match(/<template>([\s\S]*?)<\/template>/);
+    const hwStyleMatch = helloWorldContent.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+
+    const hwTemplate = hwTemplateMatch ? hwTemplateMatch[1].trim() : '';
+    const hwStyle = hwStyleMatch ? hwStyleMatch[1].trim() : '';
+
+    helloWorldComponent = `
+      const HelloWorld = {
+        template: \`${hwTemplate}\`,
+        props: ['msg'],
+        setup(props) {
+          return { ...props };
+        }
+      };
+    `;
+    style += hwStyle;
+  }
+
+  return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -133,10 +211,15 @@ const createVueProjectHTML = (projectData: any) => {
   <div id="app"></div>
   <script>
     const { createApp } = Vue;
-    const { ElMessage, ElButton, ElCard, ElContainer, ElHeader, ElMain } = ElementPlus;
+    const { ElMessage, ElButton, ElCard, ElContainer, ElHeader, ElMain, ElRow, ElCol } = ElementPlus;
+    
+    ${helloWorldComponent}
     
     const App = {
       template: \`${template}\`,
+      components: {
+        HelloWorld
+      },
       setup() {
         const showMessage = () => {
           ElMessage.success('Hello from Vue3!');
@@ -152,8 +235,191 @@ const createVueProjectHTML = (projectData: any) => {
   <\/script>
 </body>
 </html>`;
+};
 
-  return htmlContent;
+// 创建项目文件浏览器HTML
+const createProjectBrowserHTML = (projectData: any) => {
+  const fileList = Object.keys(projectData).map(filename => {
+    const content = projectData[filename];
+    const language = getFileLanguage(filename);
+
+    return {
+      name: filename,
+      content: content,
+      language: language
+    };
+  });
+
+  const fileListHTML = fileList.map((file, index) => `
+    <div class="file-item" onclick="showFile(${index})">
+      <div class="file-icon">${getFileIcon(file.name)}</div>
+      <div class="file-name">${file.name}</div>
+    </div>
+  `).join('');
+
+  const fileContents = fileList.map(file =>
+    `<pre class="file-content"><code class="language-${file.language}">${escapeHtml(file.content)}</code></pre>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目文件预览</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"><\/script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"><\/script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      background: #f5f7fa;
+      border-right: 1px solid #dcdfe6;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      padding: 16px;
+      background: #409eff;
+      color: white;
+      font-weight: bold;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #ebeef5;
+    }
+    .file-item:hover {
+      background: #ecf5ff;
+    }
+    .file-item.active {
+      background: #409eff;
+      color: white;
+    }
+    .file-icon {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    .file-name {
+      font-size: 14px;
+    }
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .file-content {
+      display: none;
+      margin: 0;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .file-content.active {
+      display: block;
+    }
+    .project-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #303133;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">项目文件</div>
+    ${fileListHTML}
+  </div>
+  <div class="content-area">
+    <div class="project-title">项目文件预览</div>
+    <div id="file-contents">
+      ${fileContents}
+    </div>
+  </div>
+  
+  <script>
+    let currentFileIndex = 0;
+    
+    function showFile(index) {
+      // 移除所有活动状态
+      document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+      document.querySelectorAll('.file-content').forEach(content => content.classList.remove('active'));
+      
+      // 添加活动状态
+      document.querySelectorAll('.file-item')[index].classList.add('active');
+      document.querySelectorAll('.file-content')[index].classList.add('active');
+      
+      currentFileIndex = index;
+      
+      // 重新高亮代码
+      if (window.Prism) {
+        Prism.highlightAll();
+      }
+    }
+    
+    // 默认显示第一个文件
+    if (document.querySelectorAll('.file-item').length > 0) {
+      showFile(0);
+    }
+  <\/script>
+</body>
+</html>`;
+};
+
+// 获取文件类型对应的语言
+const getFileLanguage = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const langMap: { [key: string]: string } = {
+    'js': 'javascript',
+    'ts': 'typescript',
+    'vue': 'markup',
+    'html': 'markup',
+    'css': 'css',
+    'json': 'json',
+    'md': 'markdown',
+    'py': 'python',
+    'java': 'java',
+    'cpp': 'cpp',
+    'c': 'c'
+  };
+  return langMap[ext || ''] || 'text';
+};
+
+// 获取文件图标
+const getFileIcon = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const iconMap: { [key: string]: string } = {
+    'js': '📄',
+    'ts': '📘',
+    'vue': '💚',
+    'html': '🌐',
+    'css': '🎨',
+    'json': '📊',
+    'md': '📝',
+    'py': '🐍',
+    'java': '☕',
+    'cpp': '⚡',
+    'c': '🔧'
+  };
+  return iconMap[ext || ''] || '📄';
+};
+
+// HTML转义
+const escapeHtml = (text: string): string => {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 };
 
 const refreshPreview = () => {
@@ -260,6 +526,15 @@ const onPreviewLoad = () => {
   font-size: 14px;
   color: #64748b;
   line-height: 1.6;
-  margin: 0;
+  margin: 0 0 20px 0;
+}
+
+.debug-info {
+  background: #f0f2f5;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  word-break: break-all;
 }
 </style>
