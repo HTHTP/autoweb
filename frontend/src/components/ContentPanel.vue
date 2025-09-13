@@ -29,7 +29,7 @@
                         <span>一键导出</span>
                     </div>
                 </div>
-                
+
                 <!-- 演示代码按钮 -->
                 <div class="demo-actions">
                     <el-button type="success" size="large" @click="$emit('load-demo')" class="demo-btn">
@@ -116,13 +116,8 @@
                                 </div>
                                 <CodeEditor v-model="codeStore.generatedCode" language="html" :readonly="false" />
                             </div>
-                            <div 
-                                class="split-divider" 
-                                :class="{ 'dragging': isDragging }"
-                                @mousedown="handleMouseDown"
-                                @dblclick="handleDoubleClick"
-                                title="拖拽调整左右面板宽度，双击重置为平分"
-                            >
+                            <div class="split-divider" :class="{ 'dragging': isDragging }" @mousedown="handleMouseDown"
+                                @dblclick="handleDoubleClick" title="拖拽调整左右面板宽度，双击重置为平分">
                                 <div class="drag-indicator">
                                     <div class="drag-dot"></div>
                                     <div class="drag-dot"></div>
@@ -168,7 +163,7 @@ const handleMouseDown = (e: MouseEvent) => {
     isDragging.value = true
     startX.value = e.clientX
     startLeftWidth.value = splitLeftWidth.value
-    
+
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
     document.body.style.cursor = 'col-resize'
@@ -177,21 +172,21 @@ const handleMouseDown = (e: MouseEvent) => {
 
 const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.value) return
-    
+
     e.preventDefault()
-    
+
     const splitView = (e.target as HTMLElement).closest('.split-view') as HTMLElement
     if (!splitView) return
-    
+
     const rect = splitView.getBoundingClientRect()
     const deltaX = e.clientX - startX.value
     const deltaPercent = (deltaX / rect.width) * 100
-    
+
     let newLeftWidth = startLeftWidth.value + deltaPercent
-    
+
     // 限制最小和最大宽度（更合理的范围）
     newLeftWidth = Math.max(15, Math.min(85, newLeftWidth))
-    
+
     splitLeftWidth.value = newLeftWidth
 }
 
@@ -526,7 +521,8 @@ defineEmits<{
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid #f0f2f5;
     overflow: hidden;
-    min-width: 200px; /* 设置最小宽度 */
+    min-width: 200px;
+    /* 设置最小宽度 */
 }
 
 .split-divider {
@@ -537,7 +533,8 @@ defineEmits<{
     cursor: col-resize;
     transition: all 0.2s ease;
     margin: 0 4px;
-    flex-shrink: 0; /* 防止分割线被压缩 */
+    flex-shrink: 0;
+    /* 防止分割线被压缩 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -578,7 +575,8 @@ defineEmits<{
 }
 
 .split-divider::before {
-    display: none; /* 隐藏原来的圆圈 */
+    display: none;
+    /* 隐藏原来的圆圈 */
 }
 
 .panel-header {
