@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "testType": "智能手表电商详情页生成测试（失败）",
+    "timestamp": "2025-09-13T12:59:02.114Z",
+    "error": "getContentSize is not defined",
+    "description": "生成一个面向消费电子类产品（如智能手表）的电商详情页网页。需包含：顶部品牌导航栏 + 搜索框；左侧产品高清轮播图、右侧产品名称 / 价格 / 规格选择器（含库存提示）；中部区域需分标签展示'产品参数'（表格形式）、'使用场景'（3-4 张实拍图）、'用户评价'（带评分 + 晒图的真实评论）；底部设'加入购物车''立即购买'按钮（带数量调整功能）及'售后保障'说明（如 7 天无理由）。整体风格简约现代，色调贴合产品科技感。",
+    "components": [
+      "顶部品牌导航栏",
+      "搜索框",
+      "产品轮播图",
+      "产品信息区",
+      "规格选择器",
+      "库存提示",
+      "产品参数表格",
+      "使用场景展示",
+      "用户评价区",
+      "购物车按钮",
+      "立即购买按钮",
+      "数量调整器",
+      "售后保障说明"
+    ],
+    "style": "tech"
+  },
+  "progressLogs": [
+    "[20:55:07] 开始 UI 设计",
+    "[20:55:55] UI 设计完成",
+    "[20:55:55] 开始生成网页代码",
+    "[20:59:02] 代码生成完毕",
+    "[20:59:02] 开始生成网页配图",
+    "[20:59:02] 生成网页配图完成",
+    "[20:59:02] 开始集成配图",
+    "[20:59:02] 项目生成完成"
+  ],
+  "error": {
+    "message": "getContentSize is not defined",
+    "stack": "ReferenceError: getContentSize is not defined\n    at analyzeGeneratedCode (C:\\Users\\hulzh\\Desktop\\demo\\autoweb\\backend\\test-smartwatch-ecommerce.js:202:17)\n    at testSmartWatchEcommercePage (C:\\Users\\hulzh\\Desktop\\demo\\autoweb\\backend\\test-smartwatch-ecommerce.js:130:23)"
+  }
+}
