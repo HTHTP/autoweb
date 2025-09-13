@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // 测试脚本 - 验证完整流程功能
+require('dotenv').config()
 const axios = require('axios');
 
 const API_BASE = 'http://localhost:3000/api';

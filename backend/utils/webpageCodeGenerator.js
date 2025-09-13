@@ -68,8 +68,9 @@ async function generateVue3Project(aiResponse, description, style) {
         try {
             projectData = JSON.parse(aiResponse);
         } catch (parseError) {
-            console.log('AI返回内容不是JSON格式，使用模板生成');
-            projectData = await generateDefaultVue3Project(description, style);
+            console.error('AI返回内容不是有效JSON格式:', parseError.message);
+            console.log('AI返回的原始内容:', aiResponse.substring(0, 500) + '...');
+            throw new Error(`AI返回的不是有效JSON格式，无法解析项目结构: ${parseError.message}`);
         }
 
         // 生成完整的项目文件结构
@@ -77,9 +78,8 @@ async function generateVue3Project(aiResponse, description, style) {
 
     } catch (error) {
         console.error('生成Vue3项目失败:', error);
-        // 回退到默认项目模板
-        const defaultProject = await generateDefaultVue3Project(description, style);
-        return await createVue3ProjectFiles(defaultProject, description, style);
+        // 不再回退到默认模板，直接抛出错误
+        throw error;
     }
 }
 
@@ -159,27 +159,39 @@ ${components.length > 0 ? `需要包含的组件：${components.join('、')}` : 
     }
 }
 
-// 网页代码生成的系统提示词（带占位符版本）
+// 网页代码生成的系统提示词（带占位符版本）- 增强版
 const WEBPAGE_CODE_WITH_PLACEHOLDERS_SYSTEM_PROMPT = {
     role: "system",
-    content: `你是一个专业的Vue3前端开发工程师。
+    content: `你是一个专业的Vue3前端开发工程师，专门负责生成包含智能图片占位符的高质量前端代码。
 
-任务：根据UI设计方案生成完整的Vue3项目代码，并在需要图片的地方使用智能占位符
+核心任务：生成完整的Vue3项目代码，在每个需要图片的位置精确添加占位符注释
 
-要求：
-1. 严格按照UI设计方案实现页面
+CRITICAL占位符格式要求：
+<!-- IMAGE_PLACEHOLDER: {"id": "唯一标识", "type": "图片类型", "size": "宽x高", "description": "商业级详细描述", "alt": "替代文本", "context": "使用场景", "productType": "产品类型", "materials": "材质描述", "lighting": "光线设置", "scene": "拍摄场景", "quality": "画质要求"} -->
+
+必须添加占位符的位置：
+1. 页面hero区域的主图（type: "hero"）
+2. 产品展示区域（type: "product"）
+3. 功能特色图片（type: "decoration"）
+4. 使用场景图片（type: "scenario"）
+5. 任何img标签或需要背景图的元素
+
+占位符描述规范：
+- description必须包含：产品类型、风格、材质、颜色、拍摄角度、品质要求
+- 例如："现代简约风格的智能手表主图，采用钛合金表身配黑色硅胶表带，45度角俯视拍摄，白色渐变背景，专业商品摄影，8K超高清"
+
+高级示例占位符：
+<!-- IMAGE_PLACEHOLDER: {"id": "hero_main", "type": "hero", "size": "1200x600", "description": "现代简约风格智能手表主图展示，钛合金表身配黑色硅胶表带，45度角俯视拍摄视角，白色渐变背景，柔和专业打光，突出材质光泽和细节纹理", "alt": "智能手表主图", "context": "页面顶部hero展示区域", "productType": "智能手表", "materials": "钛合金表身+硅胶表带+蓝宝石玻璃", "lighting": "柔和专业摄影灯光，45度角主光源", "scene": "纯白色渐变背景，简约现代", "quality": "8K超高清，商业摄影级别"} -->
+
+技术要求：
+1. 使用Vue3 Composition API和script setup语法
 2. 使用Element Plus组件库
-3. 代码要组件化、可维护
-4. 包含路由配置和项目结构
-5. 响应式设计，兼容移动端
-6. 在需要图片的地方使用结构化占位符，格式：
-   <!-- IMAGE_PLACEHOLDER: {"id": "unique_id", "type": "hero|background|decoration|icon", "size": "width x height", "description": "详细图片描述", "alt": "替代文本", "context": "使用场景描述", "productType": "产品类型", "materials": "材质要求", "lighting": "光线要求", "scene": "场景设置", "quality": "画质要求"} -->
-   
-高级占位符示例：
-- 商品主图：<!-- IMAGE_PLACEHOLDER: {"id": "hero_1", "type": "hero", "size": "1200x600", "description": "现代简约风格椅子商品展示", "alt": "现代简约椅子", "context": "页面顶部的hero区域", "productType": "椅子", "materials": "进口白橡木+高密度棉麻面料+哑光金属", "lighting": "柔和自然光从右侧窗户射入", "scene": "明亮的北欧风客厅角落，浅米色墙面，原木地板", "quality": "8K高清，4:3比例，突出材质质感"} -->
-- 背景图：<!-- IMAGE_PLACEHOLDER: {"id": "bg_1", "type": "background", "size": "1920x1080", "description": "简约现代风格背景", "alt": "", "context": "整个页面的背景", "productType": "背景纹理", "materials": "纹理清晰，材质感强", "lighting": "均匀柔和光线", "scene": "简洁大气的现代空间", "quality": "4K分辨率，色彩自然"} -->
+3. 确保响应式设计，兼容移动端
+4. 代码结构清晰，组件化设计
+5. 每个占位符的JSON必须格式正确，可被解析
+6. 在所有img标签前后添加占位符注释
 
-请返回JSON格式的项目结构。`
+请返回完整的JSON格式项目结构，确保占位符覆盖所有图片位置。`
 }
 
 // 生成带智能占位符的网页代码
@@ -187,20 +199,25 @@ async function generateWebpageCodeWithPlaceholders(description, components, styl
     try {
         const userMessage = {
             role: "user",
-            content: `请根据以下信息生成带智能占位符的Vue3项目：
+            content: `请根据以下信息生成Vue3项目的核心组件文件：
 
 需求描述：${description}
 UI设计方案：${JSON.stringify(uiDesign, null, 2)}
 组件需求：${components.join('、')}
 样式风格：${style}
 
-特别注意：
-1. 严格按照UI设计方案中的imageRequirements来规划图片位置
-2. 为每个图片位置创建对应的智能占位符，占位符信息要与UI设计中的图片需求一致
-3. 占位符要包含详细的描述信息，方便后续生成精准的图片
-4. 确保占位符的type、size、description都与UI设计中的图片需求匹配
+重要要求：
+1. 只生成核心的Vue组件文件内容，不要生成完整的项目结构
+2. 每个需要图片的地方都要添加IMAGE_PLACEHOLDER注释
+3. 确保每个占位符包含完整的JSON格式元数据
+4. 输出格式为简单的JSON：{"HomePage.vue": "组件内容", "ProductCard.vue": "组件内容"}
 
-请生成完整的Vue3项目结构。`
+生成以下关键组件：
+- HomePage.vue (主页组件，包含hero区域、产品展示等)
+- ProductCard.vue (产品卡片组件)
+- FeatureSection.vue (功能特色组件)
+
+请确保每个组件都包含对应的图片占位符。`
         }
 
         console.log('正在生成带占位符的网页代码...')
@@ -209,7 +226,7 @@ UI设计方案：${JSON.stringify(uiDesign, null, 2)}
             model: CHAT_MODEL,
             messages: [WEBPAGE_CODE_WITH_PLACEHOLDERS_SYSTEM_PROMPT, userMessage],
             temperature: 0.5,
-            max_tokens: 8000
+            max_tokens: 6000
         })
 
         const content = response?.choices?.[0]?.message?.content
@@ -217,8 +234,38 @@ UI设计方案：${JSON.stringify(uiDesign, null, 2)}
             throw new Error('代码生成失败')
         }
 
-        // 解析并生成Vue3项目
-        const codeStructure = await generateVue3Project(content, description, style)
+        // 解析AI生成的组件
+        let aiComponents
+        try {
+            aiComponents = JSON.parse(content)
+        } catch (parseError) {
+            console.error('AI返回内容不是有效JSON格式:', parseError.message)
+            console.log('AI返回的原始内容:', content.substring(0, 500) + '...')
+            throw new Error(`AI返回的不是有效JSON格式: ${parseError.message}`)
+        }
+
+        // 将AI生成的组件集成到完整项目结构中
+        const projectData = await generateDefaultVue3Project(description, style)
+        
+        // 用AI生成的组件替换默认组件
+        if (aiComponents['HomePage.vue']) {
+            projectData.pages[0].vue = aiComponents['HomePage.vue']
+        }
+        if (aiComponents['ProductCard.vue'] && projectData.components.length > 0) {
+            projectData.components.push({
+                name: 'ProductCard',
+                vue: aiComponents['ProductCard.vue']
+            })
+        }
+        if (aiComponents['FeatureSection.vue']) {
+            projectData.components.push({
+                name: 'FeatureSection', 
+                vue: aiComponents['FeatureSection.vue']
+            })
+        }
+
+        // 生成完整的项目文件结构
+        const codeStructure = await createVue3ProjectFiles(projectData, description, style)
         
         // 提取占位符信息
         const imagePlaceholders = extractImagePlaceholders(codeStructure)
@@ -230,18 +277,12 @@ UI设计方案：${JSON.stringify(uiDesign, null, 2)}
 
     } catch (error) {
         console.error('带占位符的代码生成失败:', error)
-        // 回退到默认方式
-        const defaultCode = await generateWebpageCode(description, components, style, uiDesign)
-        const fallbackPlaceholders = generateFallbackPlaceholders(description, style)
-        
-        return {
-            codeWithPlaceholders: defaultCode,
-            imagePlaceholders: fallbackPlaceholders
-        }
+        // 不再回退到默认模板，直接抛出错误让AI重试
+        throw new Error(`AI代码生成失败: ${error.message}`)
     }
 }
 
-// 从代码中提取占位符信息
+// 从代码中提取占位符信息（增强版）
 function extractImagePlaceholders(codeStructure) {
     const placeholders = []
     
@@ -256,26 +297,91 @@ function extractImagePlaceholders(codeStructure) {
         // 遍历所有文件，查找占位符
         Object.entries(projectStructure).forEach(([filePath, content]) => {
             if (typeof content === 'string') {
-                // 使用正则表达式查找占位符
-                const placeholderRegex = /<!--\s*IMAGE_PLACEHOLDER:\s*(\{[^}]+\})\s*-->/g
-                let match
+                // 增强的正则表达式，支持多种格式
+                const patterns = [
+                    // 标准JSON格式
+                    /<!--\s*IMAGE_PLACEHOLDER:\s*(\{[^}]+\})\s*-->/g,
+                    // 带变量的格式（处理Vue模板语法）
+                    /<!--\s*IMAGE_PLACEHOLDER:\s*\{[^}]*"id":\s*"([^"]+)"[^}]*\}\s*-->/g,
+                    // 简化格式
+                    /IMAGE_PLACEHOLDER[:\s]*([^\s\-]+)/g
+                ]
                 
-                while ((match = placeholderRegex.exec(content)) !== null) {
-                    try {
-                        const placeholderData = JSON.parse(match[1])
-                        placeholders.push({
-                            ...placeholderData,
-                            filePath: filePath,
-                            fullMatch: match[0]
-                        })
-                    } catch (e) {
-                        console.warn('解析占位符失败:', match[1])
+                let placeholderCount = 0
+                patterns.forEach(placeholderRegex => {
+                    let match
+                    while ((match = placeholderRegex.exec(content)) !== null) {
+                        try {
+                            placeholderCount++
+                            let placeholderData
+                            
+                            // 尝试解析JSON格式
+                            if (match[1].startsWith('{')) {
+                                placeholderData = JSON.parse(match[1])
+                            } else {
+                                // 简化格式，生成基本占位符
+                                placeholderData = {
+                                    id: match[1] || `placeholder_${placeholderCount}`,
+                                    type: 'auto',
+                                    size: '800x600',
+                                    description: '自动检测的图片占位符',
+                                    alt: '图片'
+                                }
+                            }
+                            
+                            placeholders.push({
+                                ...placeholderData,
+                                filePath: filePath,
+                                fullMatch: match[0]
+                            })
+                        } catch (e) {
+                            console.warn('解析占位符失败:', match[1], '错误:', e.message)
+                            // 即使解析失败，也创建一个基本占位符
+                            placeholders.push({
+                                id: `fallback_${placeholderCount}`,
+                                type: 'decoration',
+                                size: '600x400',
+                                description: '回退占位符',
+                                alt: '图片',
+                                filePath: filePath,
+                                fullMatch: match[0]
+                            })
+                        }
                     }
+                })
+                
+                // 如果没有找到占位符，在主要Vue文件中添加默认占位符
+                if (placeholders.length === 0 && filePath.includes('HomePage.vue')) {
+                    console.log('未找到占位符，添加默认占位符到:', filePath)
+                    placeholders.push(
+                        {
+                            id: 'hero_main',
+                            type: 'hero',
+                            size: '1200x600',
+                            description: '主要产品展示图',
+                            alt: '产品主图',
+                            filePath: filePath,
+                            context: 'HomePage主区域'
+                        },
+                        {
+                            id: 'feature_1',
+                            type: 'decoration',
+                            size: '400x300',
+                            description: '产品特色图1',
+                            alt: '特色功能',
+                            filePath: filePath,
+                            context: '产品特色展示'
+                        }
+                    )
                 }
             }
         })
 
         console.log(`提取到 ${placeholders.length} 个图片占位符`)
+        if (placeholders.length > 0) {
+            console.log('占位符详情:', placeholders.map(p => ({id: p.id, type: p.type, file: p.filePath})))
+        }
+        
         return placeholders
         
     } catch (error) {

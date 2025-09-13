@@ -73,14 +73,18 @@ async function createVue3ProjectFiles(projectData, description, style) {
     };
 
     // 添加页面文件
-    projectData.pages.forEach(page => {
-        projectStructure[`${projectData.projectName}/src/views/${page.component}.vue`] = page.vue;
-    });
+    if (projectData.pages && Array.isArray(projectData.pages)) {
+        projectData.pages.forEach(page => {
+            projectStructure[`${projectData.projectName}/src/views/${page.component}.vue`] = page.vue;
+        });
+    }
 
     // 添加组件文件
-    projectData.components.forEach(component => {
-        projectStructure[`${projectData.projectName}/src/components/${component.name}.vue`] = component.vue;
-    });
+    if (projectData.components && Array.isArray(projectData.components)) {
+        projectData.components.forEach(component => {
+            projectStructure[`${projectData.projectName}/src/components/${component.name}.vue`] = component.vue;
+        });
+    }
 
     return JSON.stringify(projectStructure, null, 2);
 }
@@ -92,6 +96,7 @@ function generateDefaultHomePage(description, style) {
     <Header />
     <main class="main-content">
       <section class="hero">
+        <!-- IMAGE_PLACEHOLDER: {"id": "hero_main", "type": "hero", "size": "1200x600", "description": "现代简约风格的${description}主图展示", "alt": "网站主图", "context": "页面顶部的hero区域", "productType": "主要产品", "materials": "高品质材料展示", "lighting": "柔和专业光线", "scene": "现代简约展示空间", "quality": "8K高清，商业摄影级别"} -->
         <h1>欢迎来到我的网站</h1>
         <p>${description}</p>
         <el-button type="primary" size="large">开始探索</el-button>
@@ -101,6 +106,7 @@ function generateDefaultHomePage(description, style) {
         <el-row :gutter="20">
           <el-col :span="8" v-for="feature in features" :key="feature.id">
             <el-card class="feature-card">
+              <!-- IMAGE_PLACEHOLDER: {"id": "feature_icon", "type": "decoration", "size": "400x300", "description": "现代简约风格的功能特色图标", "alt": "功能特色", "context": "产品特色展示区", "productType": "功能展示", "materials": "清晰简洁的图标风格", "lighting": "均匀明亮", "scene": "简约图标背景", "quality": "高清矢量图标"} -->
               <h3>{{ feature.title }}</h3>
               <p>{{ feature.description }}</p>
             </el-card>

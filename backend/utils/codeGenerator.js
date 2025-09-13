@@ -14,8 +14,7 @@ async function generateHTML({ description, components = [], style = 'modern' }, 
 
         // 检查是否配置了 API Key
         if (!checkAPIKey()) {
-            console.warn('未配置 ARK_API_KEY，使用模拟生成')
-            return await mockAIGeneration(description, components, style)
+            throw new Error('未配置 ARK_API_KEY，无法使用AI生成功能。请配置API Key后重试。')
         }
 
         // 步骤1: 开始UI设计
@@ -50,9 +49,8 @@ async function generateHTML({ description, components = [], style = 'modern' }, 
         return finalCode
     } catch (error) {
         console.error('生成代码失败:', error)
-        // 如果 API 调用失败，回退到模拟生成
-        console.warn('API 调用失败，回退到模拟生成')
-        return await mockAIGeneration(description, components, style)
+        // 不再回退到模拟生成，直接抛出错误
+        throw error
     }
 }
 
