@@ -29,6 +29,16 @@
                         <span>一键导出</span>
                     </div>
                 </div>
+                
+                <!-- 演示代码按钮 -->
+                <div class="demo-actions">
+                    <el-button type="success" size="large" @click="$emit('load-demo')" class="demo-btn">
+                        <el-icon>
+                            <MagicStick />
+                        </el-icon>
+                        加载演示代码
+                    </el-button>
+                </div>
             </div>
         </div>
 
@@ -100,14 +110,26 @@
                             </div>
                         </template>
                         <div class="tab-content split-view">
-                            <div class="split-panel split-left">
+                            <div class="split-panel split-left" :style="{ width: splitLeftWidth + '%' }">
                                 <div class="panel-header">
                                     <h4>代码编辑</h4>
                                 </div>
                                 <CodeEditor v-model="codeStore.generatedCode" language="html" :readonly="false" />
                             </div>
-                            <div class="split-divider"></div>
-                            <div class="split-panel split-right">
+                            <div 
+                                class="split-divider" 
+                                :class="{ 'dragging': isDragging }"
+                                @mousedown="handleMouseDown"
+                                @dblclick="handleDoubleClick"
+                                title="拖拽调整左右面板宽度，双击重置为平分"
+                            >
+                                <div class="drag-indicator">
+                                    <div class="drag-dot"></div>
+                                    <div class="drag-dot"></div>
+                                    <div class="drag-dot"></div>
+                                </div>
+                            </div>
+                            <div class="split-panel split-right" :style="{ width: (100 - splitLeftWidth) + '%' }">
                                 <div class="panel-header">
                                     <h4>实时预览</h4>
                                 </div>
@@ -122,6 +144,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import {
     MagicStick,
     Edit,
@@ -134,8 +157,60 @@ import PreviewPanel from './PreviewPanel.vue'
 
 const codeStore = useCodeStore()
 
+// 分屏拖拽相关数据
+const splitLeftWidth = ref(50) // 左侧面板宽度百分比
+const isDragging = ref(false)
+const startX = ref(0)
+const startLeftWidth = ref(50)
+
+// 拖拽相关方法
+const handleMouseDown = (e: MouseEvent) => {
+    isDragging.value = true
+    startX.value = e.clientX
+    startLeftWidth.value = splitLeftWidth.value
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+}
+
+const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging.value) return
+    
+    e.preventDefault()
+    
+    const splitView = (e.target as HTMLElement).closest('.split-view') as HTMLElement
+    if (!splitView) return
+    
+    const rect = splitView.getBoundingClientRect()
+    const deltaX = e.clientX - startX.value
+    const deltaPercent = (deltaX / rect.width) * 100
+    
+    let newLeftWidth = startLeftWidth.value + deltaPercent
+    
+    // 限制最小和最大宽度（更合理的范围）
+    newLeftWidth = Math.max(15, Math.min(85, newLeftWidth))
+    
+    splitLeftWidth.value = newLeftWidth
+}
+
+const handleMouseUp = () => {
+    isDragging.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+}
+
+// 双击重置布局
+const handleDoubleClick = () => {
+    splitLeftWidth.value = 50
+}
+
 defineEmits<{
     'modify': []
+    'load-demo': []
 }>()
 </script>
 
@@ -233,6 +308,28 @@ defineEmits<{
     font-size: 14px;
     font-weight: 600;
     color: #374151;
+}
+
+/* 演示按钮区域 */
+.demo-actions {
+    margin-top: 40px;
+    text-align: center;
+}
+
+.demo-btn {
+    background: linear-gradient(45deg, #10B981, #059669) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 15px 30px !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+}
+
+.demo-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
 }
 
 /* 内容包装器 */
@@ -416,13 +513,12 @@ defineEmits<{
 .split-view {
     display: flex;
     height: 100%;
-    gap: 16px;
     background: transparent !important;
     border: none !important;
+    position: relative;
 }
 
 .split-panel {
-    flex: 1;
     display: flex;
     flex-direction: column;
     background: white;
@@ -430,27 +526,59 @@ defineEmits<{
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid #f0f2f5;
     overflow: hidden;
+    min-width: 200px; /* 设置最小宽度 */
 }
 
 .split-divider {
-    width: 2px;
+    width: 8px;
     background: linear-gradient(180deg, #667eea, #764ba2);
-    border-radius: 1px;
+    border-radius: 4px;
     position: relative;
+    cursor: col-resize;
+    transition: all 0.2s ease;
+    margin: 0 4px;
+    flex-shrink: 0; /* 防止分割线被压缩 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.split-divider:hover {
+    background: linear-gradient(180deg, #5a6fd8, #6b46a8);
+    width: 10px;
+    margin: 0 3px;
+}
+
+.split-divider.dragging {
+    background: linear-gradient(180deg, #4c63d2, #5d3f9e);
+    width: 10px;
+    margin: 0 3px;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.drag-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.split-divider:hover .drag-indicator {
+    opacity: 1;
+}
+
+.drag-dot {
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .split-divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    background: white;
-    border: 2px solid #667eea;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    display: none; /* 隐藏原来的圆圈 */
 }
 
 .panel-header {

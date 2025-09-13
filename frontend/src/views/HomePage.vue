@@ -7,12 +7,12 @@
         <el-row class="main-container" :gutter="0">
             <!-- 左侧输入面板 -->
             <el-col :span="6" class="input-panel">
-                <InputPanel @generate="handleGenerate" @load-demo="handleLoadDemo" />
+                <InputPanel @generate="handleGenerate" />
             </el-col>
 
             <!-- 右侧内容区域 -->
             <el-col :span="18" class="content-area">
-                <ContentPanel @modify="handleModify" />
+                <ContentPanel @modify="handleModify" @load-demo="handleLoadDemo" />
             </el-col>
         </el-row>
     </div>

@@ -23,8 +23,8 @@
         <div class="empty-icon">🌟</div>
         <h3 class="empty-title">等待代码生成</h3>
         <p class="empty-description">
-          请在左侧点击"加载演示代码"按钮，<br />
-          或输入需求并生成代码，<br />
+          请在左侧输入需求并生成代码，<br />
+          或点击下方"加载演示代码"按钮，<br />
           生成的网页将在此处实时预览
         </p>
         <div class="debug-info">

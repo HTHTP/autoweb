@@ -86,15 +86,6 @@
                     </el-icon>
                     {{ codeStore.isGenerating ? "生成中..." : "生成代码" }}
                 </el-button>
-
-                <!-- 加载演示代码按钮 -->
-                <el-button type="success" size="large" @click="$emit('load-demo')" class="demo-btn"
-                    style="margin-top: 12px; width: 100%;">
-                    <el-icon>
-                        <MagicStick />
-                    </el-icon>
-                    加载演示代码
-                </el-button>
             </div>
 
             <!-- 生成进度显示 -->
@@ -125,7 +116,6 @@ const codeStore = useCodeStore()
 
 defineEmits<{
     'generate': []
-    'load-demo': []
 }>()
 
 // 组件库数据
