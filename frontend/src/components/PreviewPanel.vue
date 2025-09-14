@@ -53,9 +53,14 @@ const previewFrame = ref<HTMLIFrameElement>();
 
 // 处理代码，添加必要的样式和脚本
 const processedCode = computed(() => {
-  console.log('PreviewPanel received code:', props.code ? props.code.substring(0, 200) + '...' : 'null/empty');
+  console.log('===== PreviewPanel 代码处理 =====');
+  console.log('接收到的props.code:', props.code ? `类型: ${typeof props.code}, 长度: ${props.code.length}` : 'null/undefined');
+  console.log('代码内容预览:', props.code ? props.code.substring(0, 300) + '...' : 'no code');
 
-  if (!props.code) return "";
+  if (!props.code) {
+    console.log('没有代码，显示空状态');
+    return "";
+  }
 
   // 检查是否是项目文件结构的JSON
   try {
@@ -158,7 +163,7 @@ const createVueAppHTML = (appVueContent: string, projectData: any) => {
   const templateMatch = appVueContent.match(/<template>([\s\S]*?)<\/template>/);
   const styleMatch = appVueContent.match(/<style[^>]*>([\s\S]*?)<\/style>/);
 
-  const template = templateMatch ? templateMatch[1].trim() : '<div>Vue组件模板解析失败</div>';
+  let template = templateMatch ? templateMatch[1].trim() : '<div>Vue组件模板解析失败</div>';
   let style = styleMatch ? styleMatch[1].trim() : '';
 
   // 查找HelloWorld组件
@@ -183,6 +188,10 @@ const createVueAppHTML = (appVueContent: string, projectData: any) => {
       };
     `;
     style += hwStyle;
+  } else {
+    // 如果没有HelloWorld组件，但模板中引用了它，需要清理模板
+    template = template.replace(/<HelloWorld[^>]*\/?>|<HelloWorld[^>]*>.*?<\/HelloWorld>/g, '<div class="missing-component">HelloWorld组件未找到</div>');
+    console.log('清理模板中的HelloWorld引用');
   }
 
   return `<!DOCTYPE html>
@@ -210,22 +219,85 @@ const createVueAppHTML = (appVueContent: string, projectData: any) => {
 <body>
   <div id="app"></div>
   <script>
-    const { createApp } = Vue;
+    const { createApp, reactive, ref } = Vue;
     const { ElMessage, ElButton, ElCard, ElContainer, ElHeader, ElMain, ElRow, ElCol } = ElementPlus;
     
     ${helloWorldComponent}
     
     const App = {
       template: \`${template}\`,
-      components: {
-        HelloWorld
-      },
+      ${helloWorldFile ? 'components: { HelloWorld },' : ''}
       setup() {
+        // 为组件提供默认数据，避免undefined错误
+        const defaultData = reactive({
+          // 常见的数据属性默认值
+          images: [
+            'https://via.placeholder.com/300x200/4CAF50/white?text=Image+1',
+            'https://via.placeholder.com/300x200/2196F3/white?text=Image+2',
+            'https://via.placeholder.com/300x200/FF9800/white?text=Image+3'
+          ],
+          price: 1999,
+          name: '智能手表 Pro',
+          description: '这是一款功能强大的智能手表，具有多种健康监测功能。',
+          features: ['心率监测', '睡眠追踪', '运动模式', '防水设计'],
+          specifications: {
+            display: '1.4英寸 AMOLED',
+            battery: '7天续航',
+            waterproof: 'IP68',
+            connectivity: 'WiFi, 蓝牙5.0'
+          },
+          currentImage: 0,
+          quantity: 1,
+          selectedColor: '黑色',
+          selectedSize: '42mm',
+          colors: ['黑色', '白色', '蓝色'],
+          sizes: ['38mm', '42mm', '46mm'],
+          tabs: [
+            { name: '产品详情', content: '详细的产品介绍内容...' },
+            { name: '规格参数', content: '完整的技术规格...' },
+            { name: '用户评价', content: '用户使用心得和评价...' }
+          ],
+          activeTab: '产品详情'
+        });
+        
         const showMessage = () => {
           ElMessage.success('Hello from Vue3!');
         };
         
-        return { showMessage };
+        const addToCart = () => {
+          ElMessage.success('已添加到购物车！');
+        };
+        
+        const buyNow = () => {
+          ElMessage.success('立即购买功能演示');
+        };
+        
+        const selectImage = (index) => {
+          defaultData.currentImage = index;
+        };
+        
+        const handleColorChange = (color) => {
+          defaultData.selectedColor = color;
+        };
+        
+        const handleSizeChange = (size) => {
+          defaultData.selectedSize = size;
+        };
+        
+        const handleTabClick = (tabName) => {
+          defaultData.activeTab = tabName;
+        };
+        
+        return { 
+          ...defaultData, 
+          showMessage, 
+          addToCart, 
+          buyNow, 
+          selectImage,
+          handleColorChange,
+          handleSizeChange,
+          handleTabClick
+        };
       }
     };
     

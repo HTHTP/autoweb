@@ -24,7 +24,7 @@ import InputPanel from '../components/InputPanel.vue'
 import ContentPanel from '../components/ContentPanel.vue'
 import { useCodeStore } from '../stores/code'
 import { ElMessage } from 'element-plus'
-import { generateCodeWithProgress, modifyCode } from '../api/generate'
+import { generateCodeSmart, modifyCode } from '../api/generate'
 
 const codeStore = useCodeStore()
 
@@ -40,17 +40,20 @@ const handleGenerate = async () => {
     codeStore.setProgress('正在生成代码...', 0)
 
     try {
-        const code = await generateCodeWithProgress(
+        const code = await generateCodeSmart(
             {
                 description: codeStore.userPrompt,
                 components: ['Element Plus'],
                 style: 'modern'
             },
             (status: string, progress: number) => {
+                console.log('进度回调:', status, progress + '%')
                 codeStore.setProgress(status, progress)
             }
         )
 
+        console.log('生成的代码:', typeof code, code ? code.length : 'null/empty')
+        console.log('代码内容预览:', code ? code.substring(0, 200) + '...' : 'no code')
         codeStore.setGeneratedCode(code)
         codeStore.setProgress('代码生成完成', 100)
         codeStore.activeTab = 'code'

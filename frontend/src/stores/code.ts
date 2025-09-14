@@ -5,6 +5,7 @@ export const useCodeStore = defineStore('code', () => {
   // 状态
   const generatedCode = ref('')
   const isGenerating = ref(false)
+  const isGenerated = ref(false)
   const isModifying = ref(false)
   const modificationText = ref('')
   const generateProgress = ref(0)
@@ -13,20 +14,39 @@ export const useCodeStore = defineStore('code', () => {
   const activeTab = ref('code')
 
   // 用户输入相关
-  const inputMethod = ref<'text' | 'sketch'>('text')
+  const inputMethod = ref<'text' | 'sketch' | 'import'>('text')
   const userPrompt = ref('')
+  
+  // 导入相关
+  const availableFiles = ref<any[]>([])
+  const selectedFile = ref('')
+  const isLoadingFiles = ref(false)
 
   // 计算属性
   const canGenerate = computed(() => {
     if (inputMethod.value === 'text') {
       return userPrompt.value.trim().length > 0
+    } else if (inputMethod.value === 'import') {
+      return selectedFile.value.length > 0
     }
     return false
   })
 
   // 方法
-  const setGeneratedCode = (code: string) => {
-    generatedCode.value = code
+  const setGeneratedCode = (code: string | object) => {
+    let codeString = ''
+    
+    if (typeof code === 'string') {
+      codeString = code
+    } else if (typeof code === 'object' && code !== null) {
+      codeString = JSON.stringify(code, null, 2)
+    } else {
+      codeString = String(code || '')
+    }
+    
+    console.log('setGeneratedCode called with:', typeof code, codeString ? codeString.length : 'null/empty')
+    console.log('代码预览:', codeString && typeof codeString.substring === 'function' ? codeString.substring(0, 100) + '...' : 'no preview available')
+    generatedCode.value = codeString
     activeTab.value = 'code'
   }
 
@@ -93,6 +113,7 @@ export const useCodeStore = defineStore('code', () => {
     // 状态
     generatedCode,
     isGenerating,
+    isGenerated,
     isModifying,
     modificationText,
     generateProgress,
@@ -101,6 +122,9 @@ export const useCodeStore = defineStore('code', () => {
     activeTab,
     inputMethod,
     userPrompt,
+    availableFiles,
+    selectedFile,
+    isLoadingFiles,
     
     // 计算属性
     canGenerate,

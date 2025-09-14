@@ -1,0 +1,30 @@
+/*{
+  "timestamp": "2025-09-14T13:29:01.090Z",
+  "description": "成一个面向消费电子类产品（如智能手表）的电商详情页网页。需包含：顶部品牌导航栏 + 搜索框；左侧产品高清轮播图、右侧产品名称 / 价格 / 规格选择器（含库存提示）；中部区域需分标签展示‘产品参数’（表格形式）、‘使用场景’（3-4 张实拍图）、‘用户评价’（带评分 + 晒图的真实评论）；底部设‘加入购物车’‘立即购买’按钮（带数量调整功能）及‘售后保障’说明（如 7 天无理由）。整体风格简约现代，色调贴合产品科技感",
+  "components": [
+    "Element Plus"
+  ],
+  "style": "modern",
+  "mode": "async",
+  "aiGenerated": false,
+  "fallback": "default_template",
+  "fileCount": 5,
+  "fileList": [
+    "vue-project/package.json",
+    "vue-project/index.html",
+    "vue-project/vite.config.js",
+    "vue-project/src/main.js",
+    "vue-project/src/App.vue"
+  ],
+  "version": "1.0.0",
+  "canImport": true,
+  "aiModel": "ep-20250728192938-68tdn",
+  "aiError": "connect ETIMEDOUT 101.126.75.85:443"
+}*/
+{
+  "vue-project/package.json": "{\n  \"name\": \"vue-ai-generated-project\",\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"vue\": \"^3.5.17\",\n    \"element-plus\": \"^2.10.4\"\n  },\n  \"devDependencies\": {\n    \"@vitejs/plugin-vue\": \"^5.1.4\",\n    \"vite\": \"^6.0.1\"\n  }\n}",
+  "vue-project/index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>AI Generated Vue App</title>\n</head>\n<body>\n  <div id=\"app\"></div>\n  <script type=\"module\" src=\"/src/main.js\"></script>\n</body>\n</html>",
+  "vue-project/vite.config.js": "import { defineConfig } from 'vite'\nimport vue from '@vitejs/plugin-vue'\n\nexport default defineConfig({\n  plugins: [vue()]\n})",
+  "vue-project/src/main.js": "import { createApp } from 'vue'\nimport ElementPlus from 'element-plus'\nimport 'element-plus/dist/index.css'\nimport App from './App.vue'\n\nconst app = createApp(App)\napp.use(ElementPlus)\napp.mount('#app')",
+  "vue-project/src/App.vue": "<template>\n  <div class=\"app-container\">\n    <el-card class=\"main-card\">\n      <h1>🎉 AI生成的Vue3应用</h1>\n      <p>用户需求：成一个面向消费电子类产品（如智能手表）的电商详情页网页。需包含：顶部品牌导航栏 + 搜索框；左侧产品高清轮播图、右侧产品名称 / 价格 / 规格选择器（含库存提示）；中部区域需分标签展示‘产品参数’（表格形式）、‘使用场景’（3-4 张实拍图）、‘用户评价’（带评分 + 晒图的真实评论）；底部设‘加入购物车’‘立即购买’按钮（带数量调整功能）及‘售后保障’说明（如 7 天无理由）。整体风格简约现代，色调贴合产品科技感</p>\n      <el-divider />\n      <div class=\"feature-section\">\n        <el-row :gutter=\"20\">\n          <el-col :span=\"12\">\n            <el-input v-model=\"inputText\" placeholder=\"请输入内容\" />\n          </el-col>\n          <el-col :span=\"12\">\n            <el-button type=\"primary\" @click=\"handleClick\">确认</el-button>\n          </el-col>\n        </el-row>\n      </div>\n      <div v-if=\"message\" class=\"message-area\">\n        <el-alert :title=\"message\" type=\"success\" show-icon />\n      </div>\n    </el-card>\n  </div>\n</template>\n\n<script setup>\nimport { ref } from 'vue'\nimport { ElMessage } from 'element-plus'\n\nconst inputText = ref('')\nconst message = ref('')\n\nconst handleClick = () => {\n  if (inputText.value.trim()) {\n    message.value = `您输入了：${inputText.value}`\n    ElMessage.success('操作成功')\n  } else {\n    ElMessage.warning('请输入内容')\n  }\n}\n</script>\n\n<style scoped>\n.app-container {\n  min-height: 100vh;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 20px;\n}\n\n.main-card {\n  max-width: 800px;\n  width: 100%;\n}\n\n.feature-section {\n  margin: 20px 0;\n}\n\n.message-area {\n  margin-top: 20px;\n}\n\nh1 {\n  color: #409eff;\n  text-align: center;\n  margin-bottom: 20px;\n}\n\np {\n  text-align: center;\n  color: #606266;\n  font-size: 16px;\n}\n</style>"
+}
