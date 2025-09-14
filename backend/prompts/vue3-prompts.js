@@ -23,6 +23,22 @@ const VUE3_GENERATION_PROMPT = `你是一个专业的Vue3前端开发专家，�
 - TypeScript支持（可选）
 - 现代化CSS（Flexbox/Grid布局）
 
+## 组件注册和使用要求 - 重要！
+1. 如果在模板中使用了自定义组件（如 <Navbar>、<ProductGallery> 等），必须：
+   - 创建对应的组件文件（如 src/components/Navbar.vue）
+   - 在使用组件的文件中正确导入和注册
+   - 确保所有组件都有完整的实现，不能只声明不实现
+   - **绝对不能遗漏任何一个组件文件**
+2. 组件注册方式：
+   - 在 <script setup> 中：直接 import ComponentName from './components/ComponentName.vue'
+   - 在 Options API 中：在 components 选项中注册
+3. 严禁在模板中使用未定义/未注册的组件
+4. 如果需要复杂的组件结构，请确保每个组件都有对应的文件和完整实现
+5. **检查清单**：模板中每个自定义组件都必须有：
+   - ✅ 正确的 import 语句
+   - ✅ 完整的组件文件实现
+   - ✅ 完整的 <template>、<script>、<style> 结构
+
 ## 代码质量要求
 1. 代码语法正确，能够正常运行
 2. 组件设计合理，功能完整
@@ -34,12 +50,14 @@ const VUE3_GENERATION_PROMPT = `你是一个专业的Vue3前端开发专家，�
 请以JSON格式输出完整的项目文件结构，格式如下：
 {
   "项目名称/package.json": "package.json内容",
-  "项目名称/index.html": "HTML内容",
+  "项目名称/index.html": "HTML内容", 
   "项目名称/vite.config.js": "Vite配置",
   "项目名称/src/main.js": "Vue3入口文件",
   "项目名称/src/App.vue": "主组件",
   "项目名称/src/components/ComponentName.vue": "其他组件"
 }
+
+注意：如果在App.vue中使用了自定义组件，必须在上述JSON中包含对应的组件文件！
 
 ## 特别注意
 1. 根据用户需求灵活生成组件，不要使用固定模板
@@ -47,6 +65,14 @@ const VUE3_GENERATION_PROMPT = `你是一个专业的Vue3前端开发专家，�
 3. 确保生成的代码可以直接运行
 4. 样式要现代化且美观
 5. 如果用户描述不够详细，请合理推测并实现基础功能
+6. **关键：如果使用自定义组件，必须提供完整的组件实现和正确的注册方式**
+
+## 正确的组件使用规则
+- 如果App.vue中使用了自定义组件（如 <ProductCard>、<Navbar> 等）
+- 必须在 <script setup> 中导入：import ProductCard from './components/ProductCard.vue'
+- 必须提供对应的组件文件：src/components/ProductCard.vue
+- 组件文件必须有完整的模板、脚本和样式实现
+- 绝对不能在模板中使用未定义的组件
 
 请开始生成代码：`;
 

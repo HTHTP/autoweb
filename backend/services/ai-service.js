@@ -366,6 +366,20 @@ class ArkAIService {
             }
 
             console.log('✅ 所有必要文件都存在');
+            
+            // 检查组件注册是否正确
+            console.log('🔍 检查自定义组件注册...');
+            const componentValidation = this.validateComponentRegistration(originalParsed);
+            if (!componentValidation.valid) {
+                console.log('❌ 组件注册验证失败:', componentValidation.error);
+                return {
+                    valid: false,
+                    error: `组件注册错误: ${componentValidation.error}`,
+                    cleanedCode: code
+                };
+            }
+            console.log('✅ 组件注册验证通过');
+            
             console.log('===== JSON验证过程结束 - 成功 =====');
             return {
                 valid: true,
@@ -441,6 +455,111 @@ class ArkAIService {
                     error: `代码格式无效: ${cleanedError.message}`
                 };
             }
+        }
+    }
+
+    /**
+     * 验证自定义组件注册是否正确
+     */
+    validateComponentRegistration(projectData) {
+        try {
+            // 找到 App.vue 文件
+            const appVueFile = Object.keys(projectData).find(key => key.includes('App.vue'));
+            if (!appVueFile) {
+                return { valid: true }; // 没有 App.vue 跳过检查
+            }
+            
+            const appVueContent = projectData[appVueFile];
+            console.log('检查App.vue文件:', appVueFile);
+            
+            // 提取模板中使用的自定义组件
+            const templateMatch = appVueContent.match(/<template>([\s\S]*?)<\/template>/);
+            if (!templateMatch) {
+                return { valid: true }; // 没有模板跳过检查
+            }
+            
+            const template = templateMatch[1];
+            
+            // 查找自定义组件（非Element Plus组件，非HTML标签）
+            const customComponentRegex = /<([A-Z][a-zA-Z0-9]*)[^>]*(?:\/>|>[\s\S]*?<\/\1>)/g;
+            const usedComponents = new Set();
+            let match;
+            
+            while ((match = customComponentRegex.exec(template)) !== null) {
+                const componentName = match[1];
+                // 排除Element Plus组件（以El开头）和常见HTML5元素
+                if (!componentName.startsWith('El') && !['Html', 'Head', 'Body', 'Meta', 'Link', 'Script', 'Style'].includes(componentName)) {
+                    usedComponents.add(componentName);
+                }
+            }
+            
+            if (usedComponents.size === 0) {
+                console.log('✅ 没有使用自定义组件，跳过验证');
+                return { valid: true }; // 没有使用自定义组件
+            }
+            
+            console.log('🔍 发现使用的自定义组件:', Array.from(usedComponents));
+            
+            // 检查是否在script中导入了这些组件
+            const scriptMatch = appVueContent.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+            if (!scriptMatch) {
+                console.log('❌ App.vue缺少script部分');
+                return {
+                    valid: false,
+                    error: `App.vue中使用了自定义组件 ${Array.from(usedComponents).join(', ')} 但没有script部分`
+                };
+            }
+            
+            const script = scriptMatch[1];
+            const missingComponents = [];
+            const missingFiles = [];
+            
+            // 检查每个使用的组件
+            for (const componentName of usedComponents) {
+                // 检查是否有import语句
+                const importRegex = new RegExp(`import\\s+${componentName}\\s+from\\s+['"'][^'"]*${componentName}\\.vue['"]`, 'i');
+                const hasImport = importRegex.test(script);
+                
+                if (!hasImport) {
+                    console.log(`❌ 组件 ${componentName} 未正确导入`);
+                    missingComponents.push(componentName);
+                }
+                
+                // 检查是否有对应的组件文件
+                const componentFile = Object.keys(projectData).find(key => 
+                    key.includes(`${componentName}.vue`) || 
+                    key.includes(`components/${componentName}.vue`)
+                );
+                
+                if (!componentFile) {
+                    console.log(`❌ 组件 ${componentName} 缺少文件`);
+                    missingFiles.push(componentName);
+                }
+            }
+            
+            // 如果有缺失的组件或文件，返回详细错误
+            if (missingComponents.length > 0 || missingFiles.length > 0) {
+                let errorMessage = '组件验证失败：';
+                if (missingComponents.length > 0) {
+                    errorMessage += `缺少导入: ${missingComponents.join(', ')}`;
+                }
+                if (missingFiles.length > 0) {
+                    if (missingComponents.length > 0) errorMessage += '；';
+                    errorMessage += `缺少文件: ${missingFiles.join(', ')}`;
+                }
+                
+                return {
+                    valid: false,
+                    error: errorMessage
+                };
+            }
+            
+            console.log('✅ 所有组件验证通过');
+            return { valid: true };
+            
+        } catch (error) {
+            console.log('组件注册验证过程出错:', error.message);
+            return { valid: true }; // 验证出错时不阻止，但记录日志
         }
     }
 
