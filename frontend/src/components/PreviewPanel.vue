@@ -15,25 +15,33 @@
           </el-icon>
           新窗口打开
         </el-button>
+        <el-switch v-model="useOnlineCompiler" active-text="在线编译" inactive-text="静态预览" size="small"
+          style="margin-left: 10px;" />
       </div>
     </div>
     <div class="preview-content">
-      <!-- 空状态显示 -->
-      <div v-if="!props.code" class="preview-empty">
-        <div class="empty-icon">🌟</div>
-        <h3 class="empty-title">等待代码生成</h3>
-        <p class="empty-description">
-          请在左侧输入需求并生成代码，<br />
-          或点击下方"加载演示代码"按钮，<br />
-          生成的网页将在此处实时预览
-        </p>
-        <div class="debug-info">
-          <p>调试信息：接收到的code属性为 {{ props.code || 'null/undefined' }}</p>
+      <!-- 使用在线编译器 -->
+      <OnlinePreview v-if="useOnlineCompiler" :code="props.code" />
+
+      <!-- 原始静态预览 -->
+      <div v-else class="static-preview">
+        <!-- 空状态显示 -->
+        <div v-if="!props.code" class="preview-empty">
+          <div class="empty-icon">🌟</div>
+          <h3 class="empty-title">等待代码生成</h3>
+          <p class="empty-description">
+            请在左侧输入需求并生成代码，<br />
+            或点击下方"加载演示代码"按钮，<br />
+            生成的网页将在此处实时预览
+          </p>
+          <div class="debug-info">
+            <p>调试信息：接收到的code属性为 {{ props.code || 'null/undefined' }}</p>
+          </div>
         </div>
+        <!-- 预览框架 -->
+        <iframe v-else ref="previewFrame" :srcdoc="processedCode" class="preview-iframe"
+          sandbox="allow-scripts allow-same-origin" @load="onPreviewLoad"></iframe>
       </div>
-      <!-- 预览框架 -->
-      <iframe v-else ref="previewFrame" :srcdoc="processedCode" class="preview-iframe"
-        sandbox="allow-scripts allow-same-origin" @load="onPreviewLoad"></iframe>
     </div>
   </div>
 </template>
@@ -42,6 +50,7 @@
 import { ref, computed } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Link } from "@element-plus/icons-vue";
+import OnlinePreview from './OnlinePreview.vue';
 
 interface Props {
   code: string;
@@ -50,6 +59,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const previewFrame = ref<HTMLIFrameElement>();
+const useOnlineCompiler = ref(true); // 默认使用在线编译器
 
 // 处理代码，添加必要的样式和脚本
 const processedCode = computed(() => {
