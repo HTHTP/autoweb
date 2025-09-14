@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node test.js",
+    "test:interactive": "node test.js --interactive",
+    "test:simple": "node simple-test.js",
+    "test:stream": "node stream-test.js",
+    "test:standard": "node stream-test.js --standard",
+    "test:both": "node stream-test.js --both",
+    "test:detailed": "node detailed-generation-test.js",
+    "create:project": "node create-vue-project.js",
+    "create:streaming": "node streaming-project-creator.js",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
@@ -20,6 +28,7 @@
     "express": "^4.21.2",
     "jsonrepair": "^3.13.0",
     "multer": "^2.0.2",
-    "openai": "^4.104.0"
+    "openai": "^4.104.0",
+    "uuid": "^13.0.0"
   }
 }

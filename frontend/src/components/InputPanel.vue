@@ -9,32 +9,6 @@
         </div>
 
         <div class="card-content">
-            <!-- 选择组件库 -->
-            <div class="section">
-                <h3 class="section-title">选择组件库</h3>
-                <div class="library-grid">
-                    <div v-for="lib in componentLibraries" :key="lib.name" class="library-card"
-                        :class="{ active: codeStore.selectedLibrary === lib.name }" :style="{
-                            borderColor: codeStore.selectedLibrary === lib.name ? lib.color : '#e5e7eb',
-                            backgroundColor: codeStore.selectedLibrary === lib.name ? lib.bgColor : 'white'
-                        }" @click="codeStore.selectedLibrary = lib.name">
-                        <div class="library-header">
-                            <div class="library-icon">
-                                <img v-if="lib.icon.startsWith('http') || lib.icon.startsWith('/')" :src="lib.icon"
-                                    :alt="lib.name" class="library-icon-img" />
-                                <span v-else>{{ lib.icon }}</span>
-                            </div>
-                            <el-icon v-if="codeStore.selectedLibrary === lib.name" class="check-icon"
-                                :style="{ color: lib.color }">
-                                <Check />
-                            </el-icon>
-                        </div>
-                        <div class="library-name">{{ lib.name }}</div>
-                        <div class="library-description">{{ lib.description }}</div>
-                    </div>
-                </div>
-            </div>
-
             <!-- 选择输入方式 -->
             <div class="section">
                 <h3 class="section-title">选择输入方式</h3>
@@ -101,13 +75,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
     MagicStick,
     ChatDotRound,
     Edit,
-    Check,
     Upload
 } from "@element-plus/icons-vue"
 import { useCodeStore } from '@/stores/code'
@@ -117,38 +89,6 @@ const codeStore = useCodeStore()
 defineEmits<{
     'generate': []
 }>()
-
-// 组件库数据
-const componentLibraries = ref([
-    {
-        name: 'Element Plus',
-        icon: '/elementlogo.png',
-        description: '基于 Vue 3 的组件库',
-        color: '#409EFF',
-        bgColor: '#E6F7FF'
-    },
-    {
-        name: 'Ant Design Vue',
-        icon: 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg',
-        description: '企业级 UI 设计语言',
-        color: '#1890FF',
-        bgColor: '#F0F9FF'
-    },
-    {
-        name: 'Naive UI',
-        icon: 'https://www.naiveui.com//assets/naivelogo-BdDVTUmz.svg',
-        description: '轻量级 Vue 3 组件库',
-        color: '#18A058',
-        bgColor: '#F0F9F0'
-    },
-    {
-        name: 'Quasar',
-        icon: 'https://cdn.quasar.dev/logo-v2/svg/logo-dark.svg',
-        description: '全功能 Vue.js 框架',
-        color: '#1976D2',
-        bgColor: '#E3F2FD'
-    }
-])
 
 // 处理草图上传
 const handleSketchUpload = (file: any) => {
@@ -238,88 +178,6 @@ const handleSketchUpload = (file: any) => {
     height: 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 2px;
-}
-
-.library-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.library-card {
-    padding: 16px;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: white;
-    position: relative;
-    overflow: hidden;
-}
-
-.library-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: transparent;
-    transition: all 0.3s ease;
-}
-
-.library-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.library-card.active::before {
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-}
-
-.library-card.active {
-    border-color: #667eea;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
-}
-
-.library-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.library-icon {
-    font-size: 24px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.library-icon-img {
-    width: 36px;
-    height: auto;
-    object-fit: contain;
-    max-height: 48px;
-}
-
-.check-icon {
-    color: #67c23a;
-    font-size: 18px;
-}
-
-.library-name {
-    font-weight: 600;
-    color: #1a202c;
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.library-description {
-    font-size: 12px;
-    color: #6b7280;
-    line-height: 1.4;
 }
 
 .input-method-selector {

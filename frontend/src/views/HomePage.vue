@@ -30,11 +30,6 @@ const codeStore = useCodeStore()
 
 // 生成代码
 const handleGenerate = async () => {
-    if (!codeStore.selectedLibrary) {
-        ElMessage.warning('请选择一个组件库')
-        return
-    }
-
     if (codeStore.inputMethod === 'text' && !codeStore.userPrompt.trim()) {
         ElMessage.warning('请输入功能描述')
         return
@@ -48,7 +43,7 @@ const handleGenerate = async () => {
         const code = await generateCodeWithProgress(
             {
                 description: codeStore.userPrompt,
-                components: [codeStore.selectedLibrary],
+                components: ['Element Plus'],
                 style: 'modern'
             },
             (status: string, progress: number) => {

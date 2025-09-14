@@ -14,40 +14,7 @@ export const useCodeStore = defineStore('code', () => {
 
   // 用户输入相关
   const inputMethod = ref<'text' | 'sketch'>('text')
-  const selectedLibrary = ref('Element Plus')
   const userPrompt = ref('')
-
-  // 组件库数据
-  const componentLibraries = ref([
-    {
-      name: 'Element Plus',
-      icon: '/elementlogo.png',
-      description: '基于 Vue 3 的组件库',
-      color: '#409EFF',
-      bgColor: '#E6F7FF'
-    },
-    {
-      name: 'Ant Design Vue',
-      icon: 'https://gw.alipayobjects.com/zos/rmsportal/KDpgvguMpGfqaHPjicRK.svg',
-      description: '企业级 UI 设计语言',
-      color: '#1890FF',
-      bgColor: '#F0F9FF'
-    },
-    {
-      name: 'Naive UI',
-      icon: 'https://www.naiveui.com//assets/naivelogo-BdDVTUmz.svg',
-      description: '轻量级 Vue 3 组件库',
-      color: '#18A058',
-      bgColor: '#F0F9F0'
-    },
-    {
-      name: 'Quasar',
-      icon: 'https://cdn.quasar.dev/logo-v2/svg/logo-dark.svg',
-      description: '全功能 Vue.js 框架',
-      color: '#1976D2',
-      bgColor: '#E3F2FD'
-    }
-  ])
 
   // 计算属性
   const canGenerate = computed(() => {
@@ -133,9 +100,7 @@ export const useCodeStore = defineStore('code', () => {
     showProgress,
     activeTab,
     inputMethod,
-    selectedLibrary,
     userPrompt,
-    componentLibraries,
     
     // 计算属性
     canGenerate,
