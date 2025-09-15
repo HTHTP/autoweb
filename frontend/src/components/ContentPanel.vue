@@ -6,8 +6,8 @@
                 <div class="empty-icon">🎨</div>
                 <h3 class="empty-title">开始创建你的专业网页</h3>
                 <p class="empty-description">
-                    在左侧选择UI框架，描述你的需求，<br />
-                    AI将为你生成专业的网页代码
+                    在左侧描述你的需求，<br />
+                    AI将为你生成专业的HTML网页
                 </p>
                 <div class="empty-features">
                     <div class="feature-item">
@@ -76,11 +76,11 @@
                                 <el-icon>
                                     <Edit />
                                 </el-icon>
-                                <span>生成代码</span>
+                                <span>HTML代码</span>
                             </div>
                         </template>
                         <div class="tab-content">
-                            <CodeEditor v-model="codeStore.generatedCode" language="html" :readonly="false" />
+                            <CodeEditor v-model="codeStore.editableHtmlCode" language="html" :readonly="false" />
                         </div>
                     </el-tab-pane>
 
@@ -91,7 +91,7 @@
                                 <el-icon>
                                     <ChatDotRound />
                                 </el-icon>
-                                <span>实时预览</span>
+                                <span>网页预览</span>
                             </div>
                         </template>
                         <div class="tab-content">
@@ -112,9 +112,9 @@
                         <div class="tab-content split-view">
                             <div class="split-panel split-left" :style="{ width: splitLeftWidth + '%' }">
                                 <div class="panel-header">
-                                    <h4>代码编辑</h4>
+                                    <h4>HTML编辑</h4>
                                 </div>
-                                <CodeEditor v-model="codeStore.generatedCode" language="html" :readonly="false" />
+                                <CodeEditor v-model="codeStore.editableHtmlCode" language="html" :readonly="false" />
                             </div>
                             <div class="split-divider" :class="{ 'dragging': isDragging }" @mousedown="handleMouseDown"
                                 @dblclick="handleDoubleClick" title="拖拽调整左右面板宽度，双击重置为平分">
@@ -126,7 +126,7 @@
                             </div>
                             <div class="split-panel split-right" :style="{ width: (100 - splitLeftWidth) + '%' }">
                                 <div class="panel-header">
-                                    <h4>实时预览</h4>
+                                    <h4>网页预览</h4>
                                 </div>
                                 <PreviewPanel :code="codeStore.generatedCode" />
                             </div>

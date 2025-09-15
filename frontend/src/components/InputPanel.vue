@@ -20,19 +20,12 @@
                         </el-icon>
                         <span>自然语言</span>
                     </div>
-                    <div class="method-button" :class="{ active: codeStore.inputMethod === 'sketch' }"
-                        @click="codeStore.inputMethod = 'sketch'">
-                        <el-icon class="method-icon">
-                            <Edit />
-                        </el-icon>
-                        <span>草图上传</span>
-                    </div>
                     <div class="method-button" :class="{ active: codeStore.inputMethod === 'import' }"
                         @click="codeStore.inputMethod = 'import'">
                         <el-icon class="method-icon">
                             <FolderOpened />
                         </el-icon>
-                        <span>导入项目</span>
+                        <span>导入HTML</span>
                     </div>
                 </div>
             </div>
@@ -44,24 +37,10 @@
                     resize="none" />
             </div>
 
-            <!-- 草图上传 -->
-            <div v-if="codeStore.inputMethod === 'sketch'" class="section">
-                <el-upload class="sketch-uploader" drag :auto-upload="false" :on-change="handleSketchUpload"
-                    accept="image/*" :show-file-list="false">
-                    <el-icon class="upload-icon">
-                        <Upload />
-                    </el-icon>
-                    <div class="upload-text">
-                        <p>拖放草图图片到此处或点击上传</p>
-                        <p class="upload-hint">支持 PNG, JPG 格式 (最大 10MB)</p>
-                    </div>
-                </el-upload>
-            </div>
-
-            <!-- 导入项目 -->
+            <!-- 导入HTML文件 -->
             <div v-if="codeStore.inputMethod === 'import'" class="section">
                 <div class="import-header">
-                    <span class="import-title">选择要导入的项目</span>
+                    <h3 class="section-title">选择已保存的HTML文件</h3>
                     <el-button @click="loadAvailableFiles" :loading="codeStore.isLoadingFiles" size="small">
                         刷新列表
                     </el-button>
@@ -71,7 +50,7 @@
                     <el-icon>
                         <InfoFilled />
                     </el-icon>
-                    <span>点击项目文件可在右侧预览内容，确认后点击下方按钮导入</span>
+                    <span>点击HTML文件可在右侧预览内容，确认后点击下方按钮导入</span>
                 </div>
 
                 <div v-if="codeStore.isLoadingFiles" class="import-loading">
@@ -85,8 +64,8 @@
                     <el-icon class="empty-icon">
                         <FolderOpened />
                     </el-icon>
-                    <p>暂无可导入的项目</p>
-                    <p class="empty-hint">生成新项目后可在此导入使用</p>
+                    <p>暂无已保存的HTML文件</p>
+                    <p class="empty-hint">请先生成一些HTML文件，然后就可以在这里导入重用了</p>
                 </div>
 
                 <div v-else class="file-list">
@@ -98,51 +77,6 @@
                             <div class="file-meta">
                                 <span>{{ formatFileSize(file.size) }}</span>
                                 <span>{{ formatDate(file.created) }}</span>
-                                <span v-if="file.metadata.fileCount">{{ file.metadata.fileCount }} 个文件</span>
-                            </div>
-                            <div v-if="file.metadata.description" class="file-description">
-                                {{ file.metadata.description }}
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <el-button size="small" type="primary" v-if="codeStore.selectedFile === file.filename">
-                                预览中
-                            </el-button>
-                            <el-button size="small" v-else>
-                                点击预览
-                            </el-button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 导入项目 -->
-            <div v-if="codeStore.inputMethod === 'import'" class="section">
-                <div class="import-header">
-                    <h3 class="section-title">选择已保存的项目</h3>
-                    <el-button @click="loadAvailableFiles" :loading="codeStore.isLoadingFiles" size="small">
-                        刷新列表
-                    </el-button>
-                </div>
-
-                <div v-if="codeStore.availableFiles.length === 0 && !codeStore.isLoadingFiles" class="empty-state">
-                    <el-icon class="empty-icon">
-                        <FolderOpened />
-                    </el-icon>
-                    <p>暂无已保存的项目</p>
-                    <p class="empty-hint">请先生成一些项目，然后就可以在这里导入重用了</p>
-                </div>
-
-                <div v-else class="file-list">
-                    <div v-for="file in codeStore.availableFiles" :key="file.filename" class="file-item"
-                        :class="{ selected: codeStore.selectedFile === file.filename }"
-                        @click="selectFile(file.filename)">
-                        <div class="file-info">
-                            <div class="file-name">{{ file.filename }}</div>
-                            <div class="file-meta">
-                                <span>{{ formatFileSize(file.size) }}</span>
-                                <span>{{ formatDate(file.created) }}</span>
-                                <span v-if="file.metadata.fileCount">{{ file.metadata.fileCount }} 个文件</span>
                             </div>
                             <div v-if="file.metadata.description" class="file-description">
                                 {{ file.metadata.description }}
@@ -163,14 +97,14 @@
                     <el-icon>
                         <FolderOpened />
                     </el-icon>
-                    {{ codeStore.selectedFile ? '确认使用此项目' : '请先选择项目' }}
+                    {{ codeStore.selectedFile ? '确认使用此HTML文件' : '请先选择HTML文件' }}
                 </el-button>
                 <el-button v-else type="primary" size="large" :loading="codeStore.isGenerating"
                     @click="$emit('generate')" :disabled="!codeStore.canGenerate" class="generate-btn">
                     <el-icon v-if="!codeStore.isGenerating">
                         <MagicStick />
                     </el-icon>
-                    {{ codeStore.isGenerating ? "生成中..." : "生成代码" }}
+                    {{ codeStore.isGenerating ? "生成中..." : "生成HTML" }}
                 </el-button>
             </div>
 
@@ -191,8 +125,6 @@ import { ElMessage } from 'element-plus'
 import {
     MagicStick,
     ChatDotRound,
-    Edit,
-    Upload,
     FolderOpened,
     Loading,
     InfoFilled
@@ -205,12 +137,6 @@ const codeStore = useCodeStore()
 defineEmits<{
     'generate': []
 }>()
-
-// 处理草图上传
-const handleSketchUpload = (file: any) => {
-    console.log("上传的草图:", file)
-    ElMessage.info("草图功能开发中，敬请期待！")
-}
 
 // 加载可用文件列表
 const loadAvailableFiles = async () => {
@@ -246,16 +172,16 @@ const selectFile = async (filename: string) => {
             // 添加调试信息
             console.log('Import data type:', typeof data.content)
             console.log('Import data preview:', data.content)
-            
+
             // 处理不同的文件格式
             let codeToImport = data.content
-            
+
             // 如果文件包含metadata和code结构，只使用code部分
             if (data.content && typeof data.content === 'object' && data.content.code) {
                 codeToImport = data.content.code
                 console.log('Using code section from structured file')
             }
-            
+
             // 将内容传递给代码编辑器
             codeStore.setGeneratedCode(codeToImport)
             codeStore.isGenerated = true
@@ -272,12 +198,12 @@ const selectFile = async (filename: string) => {
 // 确认导入选中的文件
 const importSelectedFile = () => {
     if (!codeStore.selectedFile) {
-        ElMessage.warning('请先选择要导入的文件')
+        ElMessage.warning('请先选择要导入的HTML文件')
         return
     }
 
     // 内容已经在选择时加载了，这里只需要确认
-    ElMessage.success(`项目 "${codeStore.selectedFile}" 导入成功！`)
+    ElMessage.success(`HTML文件 "${codeStore.selectedFile}" 导入成功！`)
 }
 
 // 格式化文件大小
@@ -449,41 +375,6 @@ watch(() => codeStore.inputMethod, (newMethod) => {
 .description-input :deep(.el-textarea__inner):focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.sketch-uploader {
-    width: 100%;
-}
-
-.sketch-uploader :deep(.el-upload-dragger) {
-    border: 2px dashed #d1d5db;
-    border-radius: 12px;
-    background: #fafbfc;
-    transition: all 0.3s ease;
-    padding: 40px 20px;
-}
-
-.sketch-uploader :deep(.el-upload-dragger:hover) {
-    border-color: #667eea;
-    background: #f8faff;
-}
-
-.upload-icon {
-    font-size: 48px;
-    color: #9ca3af;
-    margin-bottom: 16px;
-}
-
-.upload-text p {
-    margin: 8px 0;
-    color: #374151;
-    font-weight: 500;
-}
-
-.upload-hint {
-    color: #9ca3af !important;
-    font-size: 12px !important;
-    font-weight: normal !important;
 }
 
 .generate-btn {

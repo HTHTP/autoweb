@@ -1,65 +1,83 @@
 <template>
   <div class="vue-project-viewer">
-    <!-- 项目结构视图选择 -->
-    <div class="view-tabs">
-      <el-tabs v-model="activeView" class="project-tabs">
-        <el-tab-pane label="文件树" name="tree">
-          <div class="file-tree-view">
-            <div class="tree-header">
-              <span>项目结构</span>
-              <div class="header-actions">
-                <el-button size="small" @click="expandAll">展开全部</el-button>
-                <el-button size="small" @click="collapseAll">折叠全部</el-button>
-              </div>
-            </div>
-            <el-tree ref="treeRef" :data="fileTreeData" :props="treeProps" node-key="path" @node-click="selectFile"
-              :expand-on-click-node="true" :default-expand-all="false" class="file-tree">
-              <template #default="{ node, data }">
-                <span class="tree-node">
-                  <el-icon v-if="data.isFolder" class="folder-icon">
-                    <Folder />
-                  </el-icon>
-                  <el-icon v-else class="file-icon">
-                    <Document />
-                  </el-icon>
-                  <span class="node-label">{{ node.label }}</span>
-                </span>
-              </template>
-            </el-tree>
-          </div>
-        </el-tab-pane>
+    <!-- 如果是HTML语言，显示简单编辑器 -->
+    <div v-if="props.language === 'html'" class="html-editor-container">
+      <div class="code-header">
+        <span>HTML代码编辑器</span>
+        <div class="header-actions">
+          <el-button size="small" @click="formatHtml">格式化</el-button>
+          <el-button size="small" @click="copyContent">复制代码</el-button>
+        </div>
+      </div>
+      <div class="code-editor-wrapper">
+        <textarea ref="htmlTextarea" v-model="codeStore.editableHtmlCode" class="code-editor html-editor"
+          placeholder="请输入或编辑HTML代码..." @input="handleHtmlChange" spellcheck="false"></textarea>
+      </div>
+    </div>
 
-        <el-tab-pane label="文件内容" name="content">
-          <div class="file-content-view">
-            <div class="content-header">
-              <span>{{ selectedFile || "请选择文件" }}</span>
-              <div class="header-actions">
-                <el-button size="small" @click="copyFileContent">复制内容</el-button>
+    <!-- 原来的Vue项目视图（用于JSON等其他语言） -->
+    <div v-else class="project-viewer">
+      <!-- 项目结构视图选择 -->
+      <div class="view-tabs">
+        <el-tabs v-model="activeView" class="project-tabs">
+          <el-tab-pane label="文件树" name="tree">
+            <div class="file-tree-view">
+              <div class="tree-header">
+                <span>项目结构</span>
+                <div class="header-actions">
+                  <el-button size="small" @click="expandAll">展开全部</el-button>
+                  <el-button size="small" @click="collapseAll">折叠全部</el-button>
+                </div>
               </div>
+              <el-tree ref="treeRef" :data="fileTreeData" :props="treeProps" node-key="path" @node-click="selectFile"
+                :expand-on-click-node="true" :default-expand-all="false" class="file-tree">
+                <template #default="{ node, data }">
+                  <span class="tree-node">
+                    <el-icon v-if="data.isFolder" class="folder-icon">
+                      <Folder />
+                    </el-icon>
+                    <el-icon v-else class="file-icon">
+                      <Document />
+                    </el-icon>
+                    <span class="node-label">{{ node.label }}</span>
+                  </span>
+                </template>
+              </el-tree>
             </div>
-            <div class="content-editor">
-              <textarea ref="contentTextarea" v-model="selectedFileContent" class="code-editor" :placeholder="selectedFile ? '文件内容...' : '请从左侧文件树选择文件'
-                " @input="handleContentChange" spellcheck="false"></textarea>
-            </div>
-          </div>
-        </el-tab-pane>
+          </el-tab-pane>
 
-        <el-tab-pane label="JSON源码" name="json">
-          <div class="json-view">
-            <div class="code-header">
-              <span>项目JSON结构</span>
-              <div class="header-actions">
-                <el-button size="small" @click="copyCode">复制JSON</el-button>
-                <el-button size="small" @click="formatJson">格式化</el-button>
+          <el-tab-pane label="文件内容" name="content">
+            <div class="file-content-view">
+              <div class="content-header">
+                <span>{{ selectedFile || "请选择文件" }}</span>
+                <div class="header-actions">
+                  <el-button size="small" @click="copyFileContent">复制内容</el-button>
+                </div>
+              </div>
+              <div class="content-editor">
+                <textarea ref="contentTextarea" v-model="selectedFileContent" class="code-editor" :placeholder="selectedFile ? '文件内容...' : '请从左侧文件树选择文件'
+                  " @input="handleContentChange" spellcheck="false"></textarea>
               </div>
             </div>
-            <div class="code-editor-wrapper">
-              <textarea ref="jsonTextarea" v-model="localValue" class="code-editor json-editor"
-                placeholder="Vue3项目JSON结构将在这里显示..." @input="handleInput" spellcheck="false"></textarea>
+          </el-tab-pane>
+
+          <el-tab-pane label="JSON源码" name="json">
+            <div class="json-view">
+              <div class="code-header">
+                <span>项目JSON结构</span>
+                <div class="header-actions">
+                  <el-button size="small" @click="copyCode">复制JSON</el-button>
+                  <el-button size="small" @click="formatJson">格式化</el-button>
+                </div>
+              </div>
+              <div class="code-editor-wrapper">
+                <textarea ref="jsonTextarea" v-model="localValue" class="code-editor json-editor"
+                  placeholder="Vue3项目JSON结构将在这里显示..." @input="handleInput" spellcheck="false"></textarea>
+              </div>
             </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
     </div>
   </div>
 </template>
@@ -68,6 +86,7 @@
 import { ref, watch, computed } from "vue";
 import { ElMessage, ElTree } from "element-plus";
 import { Folder, Document } from "@element-plus/icons-vue";
+import { useCodeStore } from "@/stores/code";
 
 interface Props {
   modelValue: string;
@@ -86,6 +105,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
+// 使用状态管理
+const codeStore = useCodeStore();
+
 // 响应式数据
 const activeView = ref("tree");
 const localValue = ref(props.modelValue || "");
@@ -94,6 +116,7 @@ const selectedFileContent = ref("");
 const treeRef = ref<InstanceType<typeof ElTree>>();
 const contentTextarea = ref<HTMLTextAreaElement>();
 const jsonTextarea = ref<HTMLTextAreaElement>();
+const htmlTextarea = ref<HTMLTextAreaElement>();
 
 // 文件树配置
 const treeProps = {
@@ -299,6 +322,35 @@ const formatJson = () => {
     ElMessage.error("JSON格式错误，无法格式化");
   }
 };
+
+// HTML相关方法
+const handleHtmlChange = () => {
+  // 更新本地值和emit
+  localValue.value = codeStore.editableHtmlCode;
+  emit("update:modelValue", codeStore.editableHtmlCode);
+  // updateHtmlCode 方法会自动处理状态同步
+  codeStore.updateHtmlCode(codeStore.editableHtmlCode);
+};
+
+const formatHtml = () => {
+  // 简单的HTML格式化
+  try {
+    // 这里可以添加更复杂的HTML格式化逻辑
+    ElMessage.success("HTML格式化完成");
+  } catch (error) {
+    ElMessage.error("HTML格式化失败");
+  }
+};
+
+const copyContent = () => {
+  try {
+    navigator.clipboard.writeText(codeStore.editableHtmlCode);
+    ElMessage.success("HTML代码已复制到剪贴板");
+  } catch (error) {
+    console.error("复制失败:", error);
+    ElMessage.error("复制失败");
+  }
+};
 </script>
 
 <style scoped>
@@ -455,6 +507,22 @@ const formatJson = () => {
   background-color: #1e1e1e;
   color: #569cd6;
   /* JSON高亮颜色 */
+}
+
+/* HTML编辑器样式 */
+.html-editor-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.html-editor {
+  background-color: #1e1e1e;
+  color: #ce9178;
+  /* HTML标签颜色 */
+  overflow: auto;
 }
 
 .code-editor:focus {

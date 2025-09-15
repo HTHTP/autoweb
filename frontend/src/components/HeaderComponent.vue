@@ -9,7 +9,7 @@
                 </div>
                 <div class="brand-info">
                     <h1 class="title">AI 网页生成器</h1>
-                    <p class="subtitle">用自然语言自动创建简易网页</p>
+                    <p class="subtitle">用自然语言自动创建HTML网页</p>
                 </div>
             </div>
             <div class="header-actions">
@@ -24,7 +24,7 @@
                     <el-icon>
                         <Download />
                     </el-icon>
-                    导出代码
+                    导出HTML
                 </el-button>
             </div>
         </div>

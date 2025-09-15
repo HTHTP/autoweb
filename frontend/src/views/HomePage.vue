@@ -116,18 +116,18 @@ const handleExportCode = () => {
         return
     }
 
-    // 创建并下载文件
-    const blob = new Blob([codeStore.generatedCode], { type: 'text/plain' })
+    // 创建并下载HTML文件
+    const blob = new Blob([codeStore.generatedCode], { type: 'text/html;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'generated-code.vue'
+    link.download = `generated-${Date.now()}.html`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
 
-    ElMessage.success('代码已导出')
+    ElMessage.success('HTML文件已导出')
 }
 </script>
 
