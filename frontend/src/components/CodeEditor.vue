@@ -5,7 +5,7 @@
       <div class="code-header">
         <span>HTML代码编辑器</span>
         <div class="header-actions">
-          <el-button size="small" @click="formatHtml">格式化</el-button>
+          <el-button size="small" @click="formatHtml">清除</el-button>
           <el-button size="small" @click="copyContent">复制代码</el-button>
         </div>
       </div>
@@ -332,13 +332,26 @@ const handleHtmlChange = () => {
   codeStore.updateHtmlCode(codeStore.editableHtmlCode);
 };
 
+// 监听editableHtmlCode变化，自动滚动到底部
+watch(
+  () => codeStore.editableHtmlCode,
+  () => {
+    if (htmlTextarea.value) {
+      htmlTextarea.value.scrollTop = htmlTextarea.value.scrollHeight;
+    }
+  },
+  { immediate: true }
+);
+
 const formatHtml = () => {
-  // 简单的HTML格式化
+  // 清空编辑器内容
   try {
-    // 这里可以添加更复杂的HTML格式化逻辑
-    ElMessage.success("HTML格式化完成");
+    codeStore.editableHtmlCode = '';
+    localValue.value = '';
+    emit('update:modelValue', '');
+    ElMessage.success("编辑器已清空");
   } catch (error) {
-    ElMessage.error("HTML格式化失败");
+    ElMessage.error("清空编辑器失败");
   }
 };
 

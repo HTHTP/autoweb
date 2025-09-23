@@ -16,6 +16,8 @@ export const useCodeStore = defineStore('code', () => {
   // 用户输入相关
   const inputMethod = ref<'text' | 'sketch' | 'import'>('text')
   const userPrompt = ref('')
+  const useChunkedOutput = ref(true) // 是否使用分块生成（续写模式）
+  const useDeepThinking = ref(true) // 是否使用深度思考模式
   
   // 导入相关
   const availableFiles = ref<any[]>([])
@@ -35,71 +37,88 @@ export const useCodeStore = defineStore('code', () => {
   // 提取HTML内容的计算属性
   const extractedHtmlCode = computed(() => {
     if (!generatedCode.value) return ''
-    
-    // 如果是完整的HTML文档，直接返回
-    if (generatedCode.value.includes("<!DOCTYPE html>") || generatedCode.value.includes("<html")) {
-      return generatedCode.value
-    }
 
     // 尝试解析JSON格式
     try {
       const jsonData = JSON.parse(generatedCode.value)
       
-      // 如果是对象，尝试从中提取HTML文件
-      if (typeof jsonData === 'object' && jsonData !== null) {
-        // 查找index.html文件
-        for (const key in jsonData) {
-          if (key.endsWith('index.html') && typeof jsonData[key] === 'string') {
-            console.log('从JSON中提取index.html:', key)
-            return jsonData[key]
-          }
-        }
-        
-        // 查找任何.html文件
-        for (const key in jsonData) {
-          if (key.endsWith('.html') && typeof jsonData[key] === 'string') {
-            console.log('从JSON中提取HTML文件:', key)
-            return jsonData[key]
-          }
-        }
-        
-        // 如果没有HTML文件，尝试从App.vue中提取template
-        for (const key in jsonData) {
-          if (key.endsWith('App.vue') && typeof jsonData[key] === 'string') {
-            const vueContent = jsonData[key]
-            const templateMatch = vueContent.match(/<template>([\s\S]*?)<\/template>/)
-            if (templateMatch) {
-              console.log('从Vue组件中提取模板')
-              // 包装成完整HTML
-              return createHtmlFromTemplate(templateMatch[1])
-            }
-          }
-        }
+      // 如果解析成功是对象且有code字段，使用code字段
+      if (typeof jsonData === 'object' && jsonData !== null && jsonData.code && typeof jsonData.code === 'string') {
+        console.log('从JSON中提取code字段内容')
+        return jsonData.code
+      }
+      // 如果解析成功是字符串，直接返回
+      else if (typeof jsonData === 'string') {
+        console.log('解析成功为字符串，直接返回')
+        return jsonData
+      }
+      // 其他情况，将解析后的内容转为字符串
+      else {
+        console.log('解析成功但不是预期格式，转为字符串')
+        return String(jsonData)
       }
     } catch (e) {
-      console.log('不是有效的JSON格式，当作HTML片段处理')
+      console.log('不是有效的JSON格式，直接使用原始字符串')
+      // 如果不是有效的JSON，直接返回原始字符串（这可能是HTML代码）
+      return generatedCode.value
     }
-
-    // 如果都不是，当作HTML片段处理
-    return createHtmlFromTemplate(generatedCode.value)
   })
 
   // 可编辑的HTML代码（用于代码编辑器）
   const editableHtmlCode = ref('')
   
+  // 是否正在手动更新HTML（防止watch循环触发）
+  const isManualUpdate = ref(false)
+  
   // 监听提取的HTML变化，同步到可编辑版本
   watch(extractedHtmlCode, (newHtml: string) => {
-    editableHtmlCode.value = newHtml
+    if (!isManualUpdate.value) {
+      editableHtmlCode.value = newHtml
+    }
   }, { immediate: true })
 
   // 更新HTML代码的方法
   const updateHtmlCode = (newHtml: string) => {
+    isManualUpdate.value = true
     editableHtmlCode.value = newHtml
-    // 同时更新原始代码
-    generatedCode.value = newHtml
+    // 创建包含code字段的JSON对象
+    const jsonWithCode = {
+      code: newHtml
+    }
+    // 更新generatedCode为包含code字段的JSON字符串
+    generatedCode.value = JSON.stringify(jsonWithCode, null, 2)
+    // 重置标志
+    setTimeout(() => {
+      isManualUpdate.value = false
+    }, 0)
   }
 
-  // 创建完整HTML文档的辅助函数
+  // 应用初始化时加载默认HTML模板
+  const defaultHtmlTemplate = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的HTML页面</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>欢迎使用HTML编辑器</h1>
+  <p>请在此输入或编辑您的HTML代码</p>
+</body>
+</html>`
+
+  // 注释掉自动加载默认模板，让用户点击"加载演示代码"按钮后才加载
+  // updateHtmlCode(defaultHtmlTemplate)
+
+  // 创建完整HTML文档的辅助函数（保留以备将来使用）
   const createHtmlFromTemplate = (content: string) => {
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -125,22 +144,82 @@ export const useCodeStore = defineStore('code', () => {
 </html>`
   }
 
+  // 使用一次该函数以避免未使用警告
+  // @ts-ignore - 故意保留但不实际使用
+  createHtmlFromTemplate('')
+
   // 方法
   const setGeneratedCode = (code: string | object) => {
     let codeString = ''
     
+    console.log('===== 导入调试信息 =====')
+    console.log('原始输入类型:', typeof code)
+    console.log('原始输入内容预览:', typeof code === 'string' ? (code.length > 100 ? code.substring(0, 100) + '...' : code) : JSON.stringify(code).substring(0, 100) + '...')
+    
     if (typeof code === 'string') {
-      codeString = code
+      // 如果是字符串，检查是否已经是JSON格式的字符串
+      try {
+        const parsed = JSON.parse(code)
+        // 如果是JSON对象且有code字段，直接使用code字段
+        if (typeof parsed === 'object' && parsed !== null && 'code' in parsed) {
+          codeString = typeof (parsed as any).code === 'string' ? (parsed as any).code : String((parsed as any).code)
+          console.log('检测到JSON字符串，已提取code字段')
+        } else {
+          codeString = code
+          console.log('使用原始字符串')
+        }
+      } catch (e) {
+        // 不是JSON字符串，直接使用
+        codeString = code
+        console.log('不是JSON字符串，直接使用')
+      }
     } else if (typeof code === 'object' && code !== null) {
-      codeString = JSON.stringify(code, null, 2)
+      // 如果是对象且有code字段，直接使用code字段
+      if ('code' in code) {
+        codeString = typeof (code as any).code === 'string' ? (code as any).code : String((code as any).code)
+        console.log('检测到对象有code字段，已提取')
+      } else {
+        // 否则序列化整个对象
+        codeString = JSON.stringify(code, null, 2)
+        console.log('对象没有code字段，已序列化为JSON字符串')
+      }
     } else {
       codeString = String(code || '')
+      console.log('转换为字符串')
     }
     
-    console.log('setGeneratedCode called with:', typeof code, codeString ? codeString.length : 'null/empty')
-    console.log('代码预览:', codeString && typeof codeString.substring === 'function' ? codeString.substring(0, 100) + '...' : 'no preview available')
+    console.log('最终使用的代码长度:', codeString.length)
+    console.log('最终代码预览:', codeString.substring(0, 100) + (codeString.length > 100 ? '...' : ''))
+    console.log('======================')
+    
     generatedCode.value = codeString
     activeTab.value = 'code'
+  }
+  
+  // 追加生成的代码块（用于流式输出）
+  const appendGeneratedCode = (chunk: string) => {
+    if (!chunk) return
+    
+    // 记录追加前的长度，用于调试
+    const prevLength = generatedCode.value.length
+    
+    // 追加新内容到generatedCode
+    generatedCode.value += chunk
+    
+    // 检查是否是第一次追加，如果是，设置生成状态为true
+    if (!isGenerated.value && generatedCode.value.trim().length > 0) {
+      isGenerated.value = true
+    }
+    
+    // 直接追加到可编辑HTML代码
+    isManualUpdate.value = true
+    editableHtmlCode.value += chunk
+    setTimeout(() => {
+      isManualUpdate.value = false
+    }, 0)
+    
+    // 输出调试信息
+    console.log(`追加代码块，从${prevLength}字符增加到${generatedCode.value.length}字符`)
   }
 
   const setGenerating = (loading: boolean) => {
@@ -161,11 +240,20 @@ export const useCodeStore = defineStore('code', () => {
   }
 
   const clearCode = () => {
-    generatedCode.value = ''
+    // 保留最小占位符JSON对象，确保编辑界面不会切换到空状态
+    generatedCode.value = '{"code":""}'
     modificationText.value = ''
     generateProgress.value = 0
     generateStatus.value = ''
     showProgress.value = false
+    isGenerated.value = false
+    
+    // 直接清空可编辑HTML代码，确保编辑器完全清空
+    isManualUpdate.value = true
+    editableHtmlCode.value = ''
+    setTimeout(() => {
+      isManualUpdate.value = false
+    }, 0)
   }
 
   const loadDemoCode = () => {
@@ -352,21 +440,23 @@ export const useCodeStore = defineStore('code', () => {
 
   return {
     // 状态
-    generatedCode,
-    isGenerating,
-    isGenerated,
-    isModifying,
-    modificationText,
-    generateProgress,
-    generateStatus,
-    showProgress,
-    activeTab,
-    inputMethod,
-    userPrompt,
-    availableFiles,
-    selectedFile,
-    isLoadingFiles,
+    generatedCode, 
+    isGenerating, 
+    isGenerated, 
+    isModifying, 
+    modificationText, 
+    generateProgress, 
+    generateStatus, 
+    showProgress, 
+    activeTab, 
+    inputMethod, 
+    userPrompt, 
+    availableFiles, 
+    selectedFile, 
+    isLoadingFiles, 
     editableHtmlCode,
+    useChunkedOutput,
+    useDeepThinking,
     
     // 计算属性
     canGenerate,
@@ -380,6 +470,7 @@ export const useCodeStore = defineStore('code', () => {
     setShowProgress,
     clearCode,
     loadDemoCode,
-    updateHtmlCode
+    updateHtmlCode,
+    appendGeneratedCode
   }
 })

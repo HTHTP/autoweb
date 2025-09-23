@@ -40,17 +40,32 @@
             <!-- 导入HTML文件 -->
             <div v-if="codeStore.inputMethod === 'import'" class="section">
                 <div class="import-header">
-                    <h3 class="section-title">选择已保存的HTML文件</h3>
-                    <el-button @click="loadAvailableFiles" :loading="codeStore.isLoadingFiles" size="small">
-                        刷新列表
-                    </el-button>
+                    <h3 class="section-title">导入本地JSON文件</h3>
+                    <div class="import-buttons">
+                        <el-button @click="loadDefaultDirectoryFiles" :loading="codeStore.isLoadingFiles" size="small"
+                            style="margin-right: 8px">
+                            <el-icon>
+                                <FolderOpened />
+                            </el-icon>
+                            加载默认目录
+                        </el-button>
+                        <el-button @click="selectLocalFile" size="small">
+                            <el-icon>
+                                <Document />
+                            </el-icon>
+                            选择文件
+                        </el-button>
+                    </div>
                 </div>
+
+                <!-- 隐藏的文件输入元素 -->
+                <input ref="fileInput" type="file" accept=".json" style="display: none" @change="handleFileSelect" />
 
                 <div class="import-tip">
                     <el-icon>
                         <InfoFilled />
                     </el-icon>
-                    <span>点击HTML文件可在右侧预览内容，确认后点击下方按钮导入</span>
+                    <span>选择本地JSON文件直接导入HTML内容</span>
                 </div>
 
                 <div v-if="codeStore.isLoadingFiles" class="import-loading">
@@ -60,44 +75,66 @@
                     <span>加载中...</span>
                 </div>
 
-                <div v-else-if="codeStore.availableFiles.length === 0" class="empty-state">
-                    <el-icon class="empty-icon">
-                        <FolderOpened />
-                    </el-icon>
-                    <p>暂无已保存的HTML文件</p>
-                    <p class="empty-hint">请先生成一些HTML文件，然后就可以在这里导入重用了</p>
-                </div>
-
-                <div v-else class="file-list">
-                    <div v-for="file in codeStore.availableFiles" :key="file.filename" class="file-item"
-                        :class="{ selected: codeStore.selectedFile === file.filename }"
-                        @click="selectFile(file.filename)">
+                <div v-else-if="selectedFileName" class="file-preview">
+                    <div class="file-item selected">
                         <div class="file-info">
-                            <div class="file-name">{{ file.filename }}</div>
+                            <div class="file-name">{{ selectedFileName }}</div>
                             <div class="file-meta">
-                                <span>{{ formatFileSize(file.size) }}</span>
-                                <span>{{ formatDate(file.created) }}</span>
+                                <span>{{ selectedFileSize }}</span>
+                                <span>{{ formatDate(new Date().toISOString()) }}</span>
                             </div>
-                            <div v-if="file.metadata.description" class="file-description">
-                                {{ file.metadata.description }}
+                            <div class="file-description">
+                                已选择本地文件，点击下方按钮确认导入
                             </div>
-                        </div>
-                        <div class="file-actions">
-                            <el-tag v-if="file.metadata.aiGenerated" type="success" size="small">AI生成</el-tag>
-                            <el-tag v-else type="info" size="small">默认模板</el-tag>
                         </div>
                     </div>
                 </div>
+
+                <!-- 默认目录文件列表 -->
+                <div v-if="showDefaultDirectoryFiles && defaultDirectoryFiles.length > 0" class="default-files-section">
+                    <div class="section-title" style="margin-bottom: 16px;">默认目录文件</div>
+                    <div class="file-list">
+                        <div v-for="file in defaultDirectoryFiles" :key="file.filename" class="file-item"
+                            :class="{ selected: selectedFileName === file.filename }"
+                            @click="selectFileFromDefaultDirectory(file)">
+                            <div class="file-info">
+                                <div class="file-name">{{ file.filename }}</div>
+                                <div class="file-meta">
+                                    <span>{{ file.size ? formatFileSize(file.size) : '未知大小' }}</span>
+                                    <span>{{ file.created ? formatDate(file.created) : '未知时间' }}</span>
+                                </div>
+                                <div v-if="file.metadata?.description" class="file-description">
+                                    {{ file.metadata.description }}
+                                </div>
+                            </div>
+                            <div class="file-actions">
+                                <el-tag v-if="file.metadata?.aiGenerated" type="success" size="small">AI生成</el-tag>
+                                <el-tag v-else type="info" size="small">默认模板</el-tag>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else class="empty-state">
+                    <el-icon class="empty-icon">
+                        <FolderOpened />
+                    </el-icon>
+                    <p>请选择要导入的JSON文件</p>
+                    <p class="empty-hint">点击上方的"加载默认目录"按钮或"选择文件"按钮导入文件</p>
+                </div>
             </div>
+
+            <!-- 高级选项已默认启用 -->
+            <div v-if="codeStore.inputMethod === 'text'" class="section hidden-advanced-options"></div>
 
             <!-- 生成/导入按钮 -->
             <div class="section">
                 <el-button v-if="codeStore.inputMethod === 'import'" type="primary" size="large"
-                    @click="importSelectedFile" :disabled="!codeStore.selectedFile" class="generate-btn">
+                    @click="importSelectedFile" :disabled="!selectedFileName" class="generate-btn">
                     <el-icon>
                         <FolderOpened />
                     </el-icon>
-                    {{ codeStore.selectedFile ? '确认使用此HTML文件' : '请先选择HTML文件' }}
+                    {{ selectedFileName ? '确认使用此HTML文件' : '请先选择HTML文件' }}
                 </el-button>
                 <el-button v-else type="primary" size="large" :loading="codeStore.isGenerating"
                     @click="$emit('generate')" :disabled="!codeStore.canGenerate" class="generate-btn">
@@ -127,10 +164,11 @@ import {
     ChatDotRound,
     FolderOpened,
     Loading,
-    InfoFilled
+    InfoFilled,
+    Document
 } from "@element-plus/icons-vue"
 import { useCodeStore } from '@/stores/code'
-import { watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 
 const codeStore = useCodeStore()
 
@@ -138,40 +176,108 @@ defineEmits<{
     'generate': []
 }>()
 
-// 加载可用文件列表
-const loadAvailableFiles = async () => {
+// 选择本地文件
+const fileInput = ref<HTMLInputElement>()
+const selectedFileName = ref('')
+const selectedFileSize = ref('')
+let selectedFileContent: any = null
+const defaultDirectoryFiles = ref<any[]>([])
+const showDefaultDirectoryFiles = ref(false)
+
+// 打开文件选择对话框
+const selectLocalFile = () => {
+    fileInput.value?.click()
+}
+
+// 处理文件选择
+const handleFileSelect = (event: Event) => {
+    const input = event.target as HTMLInputElement
+    if (input.files && input.files.length > 0) {
+        const file = input.files[0]
+        selectedFileName.value = file.name
+        selectedFileSize.value = formatFileSize(file.size)
+
+        codeStore.isLoadingFiles = true
+
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            try {
+                if (e.target?.result) {
+                    selectedFileContent = JSON.parse(e.target.result as string)
+
+                    // 预览文件内容
+                    // 处理不同的文件格式
+                    let codeToImport = selectedFileContent
+
+                    // 如果文件包含metadata和code结构，只使用code部分
+                    if (selectedFileContent && typeof selectedFileContent === 'object' && selectedFileContent.code) {
+                        codeToImport = selectedFileContent.code
+                        console.log('Using code section from structured file')
+                    }
+
+                    // 将内容传递给代码编辑器
+                    codeStore.setGeneratedCode(codeToImport)
+                    codeStore.isGenerated = true
+                    ElMessage.success(`已预览文件: ${file.name}`)
+                }
+            } catch (error) {
+                console.error('解析文件失败:', error)
+                ElMessage.error('文件格式无效，请选择有效的JSON文件')
+                selectedFileName.value = ''
+                selectedFileSize.value = ''
+                selectedFileContent = null
+            } finally {
+                codeStore.isLoadingFiles = false
+            }
+        }
+        reader.onerror = () => {
+            console.error('读取文件失败')
+            ElMessage.error('读取文件失败')
+            codeStore.isLoadingFiles = false
+        }
+        reader.readAsText(file)
+
+        // 重置input，允许重复选择同一个文件
+        input.value = ''
+    }
+}
+
+// 加载默认目录的文件列表
+const loadDefaultDirectoryFiles = async () => {
     try {
         codeStore.isLoadingFiles = true
+        // 注意：由于浏览器安全限制，我们不能直接访问本地文件系统路径
+        // 这里我们模拟加载默认目录的文件列表
+        // 实际项目中，这需要后端API支持
         const response = await fetch('http://localhost:3000/api/import/json-files')
         const data = await response.json()
 
         if (data.success) {
-            codeStore.availableFiles = data.files
-            console.log('加载了', data.files.length, '个文件')
+            defaultDirectoryFiles.value = data.files
+            showDefaultDirectoryFiles.value = true
+            ElMessage.success(`加载了 ${data.files.length} 个默认目录文件`)
         } else {
-            ElMessage.error('加载文件列表失败')
+            ElMessage.error('加载默认目录文件失败')
         }
     } catch (error) {
-        console.error('加载文件列表失败:', error)
-        ElMessage.error('加载文件列表失败')
+        console.error('加载默认目录文件失败:', error)
+        ElMessage.error('加载默认目录文件失败，请确保后端服务已启动')
     } finally {
         codeStore.isLoadingFiles = false
     }
 }
 
-// 选择文件并预览
-const selectFile = async (filename: string) => {
-    codeStore.selectedFile = filename
-
-    // 立即加载并预览文件内容
+// 从默认目录选择文件
+const selectFileFromDefaultDirectory = async (file: any) => {
     try {
-        const response = await fetch(`http://localhost:3000/api/import/json-file/${filename}`)
+        codeStore.isLoadingFiles = true
+        const response = await fetch(`http://localhost:3000/api/import/file-content/${file.filename}`)
         const data = await response.json()
 
         if (data.success) {
-            // 添加调试信息
-            console.log('Import data type:', typeof data.content)
-            console.log('Import data preview:', data.content)
+            selectedFileName.value = file.filename
+            selectedFileSize.value = formatFileSize(0) // 由于没有实际文件大小信息，我们设为0
+            selectedFileContent = data.content
 
             // 处理不同的文件格式
             let codeToImport = data.content
@@ -185,26 +291,70 @@ const selectFile = async (filename: string) => {
             // 将内容传递给代码编辑器
             codeStore.setGeneratedCode(codeToImport)
             codeStore.isGenerated = true
-            ElMessage.success(`已预览文件: ${filename}`)
+            ElMessage.success(`已预览文件: ${file.filename}`)
         } else {
             ElMessage.error('加载文件预览失败: ' + data.error)
         }
     } catch (error) {
         console.error('加载文件预览失败:', error)
         ElMessage.error('加载文件预览失败')
+    } finally {
+        codeStore.isLoadingFiles = false
     }
 }
 
 // 确认导入选中的文件
 const importSelectedFile = () => {
-    if (!codeStore.selectedFile) {
-        ElMessage.warning('请先选择要导入的HTML文件')
+    if (!selectedFileContent) {
+        ElMessage.warning('请先选择要导入的JSON文件')
         return
     }
 
-    // 内容已经在选择时加载了，这里只需要确认
-    ElMessage.success(`HTML文件 "${codeStore.selectedFile}" 导入成功！`)
+    console.log('===== 导入文件处理 =====')
+    console.log('文件名:', selectedFileName.value)
+    console.log('原始内容类型:', typeof selectedFileContent)
+    console.log('原始内容预览:', typeof selectedFileContent === 'string' ?
+        (selectedFileContent.length > 100 ? selectedFileContent.substring(0, 100) + '...' : selectedFileContent) :
+        JSON.stringify(selectedFileContent).substring(0, 100) + '...')
+
+    // 处理导入的内容，确保提取code部分
+    let codeToImport = selectedFileContent
+
+    // 如果内容是对象且包含code字段，只使用code部分
+    if (selectedFileContent && typeof selectedFileContent === 'object' && selectedFileContent.code) {
+        console.log('检测到对象有code字段，提取前类型:', typeof selectedFileContent.code)
+        codeToImport = selectedFileContent.code
+        console.log('提取后code类型:', typeof codeToImport)
+    }
+    // 如果内容是字符串，尝试解析为JSON对象
+    else if (typeof selectedFileContent === 'string') {
+        try {
+            const parsedContent = JSON.parse(selectedFileContent)
+            if (parsedContent && typeof parsedContent === 'object' && parsedContent.code) {
+                console.log('字符串解析为JSON对象并提取code字段')
+                codeToImport = parsedContent.code
+            }
+        } catch (e) {
+            console.log('字符串不是有效的JSON格式，直接使用')
+            // 不是有效的JSON，直接使用字符串内容
+        }
+    }
+
+    console.log('传递给setGeneratedCode的最终类型:', typeof codeToImport)
+    console.log('最终内容长度:', typeof codeToImport === 'string' ? codeToImport.length : JSON.stringify(codeToImport).length)
+    console.log('======================')
+
+    // 将处理后的内容传递给代码编辑器
+    codeStore.setGeneratedCode(codeToImport)
+    codeStore.isGenerated = true
+    ElMessage.success(`JSON文件 "${selectedFileName.value}" 导入成功！`)
 }
+
+// 组件挂载时自动加载默认目录文件
+// 这将确保用户一进入页面就能看到默认目录中的文件
+onMounted(() => {
+    loadDefaultDirectoryFiles()
+})
 
 // 格式化文件大小
 const formatFileSize = (bytes: number) => {
@@ -227,10 +377,12 @@ const formatDate = (dateString: string) => {
     })
 }
 
-// 监听导入模式变化，自动加载文件
+// 监听导入模式变化，重置选择状态
 watch(() => codeStore.inputMethod, (newMethod) => {
-    if (newMethod === 'import' && codeStore.availableFiles.length === 0) {
-        loadAvailableFiles()
+    if (newMethod === 'import') {
+        selectedFileName.value = ''
+        selectedFileSize.value = ''
+        selectedFileContent = null
     }
 }, { immediate: true })
 </script>
@@ -416,6 +568,12 @@ watch(() => codeStore.inputMethod, (newMethod) => {
     box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
 }
 
+/* 隐藏的高级选项 */
+.hidden-advanced-options {
+    display: none;
+}
+
+/* 进度条样式 */
 .progress-section {
     margin-top: 24px;
     padding: 20px;
@@ -445,6 +603,17 @@ watch(() => codeStore.inputMethod, (newMethod) => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+}
+
+.import-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.default-files-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f2f5;
 }
 
 .empty-state {

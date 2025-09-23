@@ -1,1 +1,0 @@
-<template><div class="user-reviews"><div class="reviews-summary"><div class="rating-overview"><div class="average-rating"><span class="rating-value">{{ averageRating.toFixed(1) }}</span><div class="stars"><el-rate v-model=

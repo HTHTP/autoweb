@@ -34,15 +34,21 @@
           生成的网页将在此处实时预览
         </p>
       </div>
+      <!-- 生成中状态显示 -->
+      <div v-else-if="codeStore.isGenerating" class="preview-generating">
+        <div class="generating-icon">⏳</div>
+        <h3 class="generating-title">请稍后</h3>
+        <p class="generating-description">正在生成代码，完成后将自动显示预览</p>
+      </div>
       <!-- HTML预览框架 -->
-      <iframe v-else ref="previewFrame" :srcdoc="processedCode" class="preview-iframe"
+      <iframe v-else ref="previewFrame" :srcdoc="displayCode" class="preview-iframe"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups" @load="onPreviewLoad"></iframe>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { Refresh, Link, Download } from "@element-plus/icons-vue";
 import { useCodeStore } from "@/stores/code";
@@ -55,6 +61,7 @@ const props = defineProps<Props>();
 const codeStore = useCodeStore();
 
 const previewFrame = ref<HTMLIFrameElement>();
+const displayCode = ref('');
 
 // 处理代码，使用状态管理中的提取逻辑
 const processedCode = computed(() => {
@@ -106,6 +113,22 @@ const downloadHtml = () => {
 const onPreviewLoad = () => {
   console.log("HTML预览加载完成");
 };
+
+// 监听代码生成状态和处理后的代码变化
+watch(
+  [() => codeStore.isGenerating, () => props.code, processedCode],
+  ([isGenerating, propsCode, newCode]) => {
+    // 如果不在生成过程中且有新代码，直接更新预览
+    if (!isGenerating && newCode) {
+      displayCode.value = newCode;
+    }
+    // 检测到props.code变化时（如导入HTML文件），立即更新预览
+    else if (propsCode && newCode) {
+      displayCode.value = newCode;
+    }
+  },
+  { immediate: true, deep: true }
+);
 </script>
 
 <style scoped>
@@ -189,6 +212,48 @@ const onPreviewLoad = () => {
 }
 
 .empty-description {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 生成中状态样式 */
+.preview-generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.generating-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.generating-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 12px 0;
+}
+
+.generating-description {
   font-size: 14px;
   color: #64748b;
   line-height: 1.6;
